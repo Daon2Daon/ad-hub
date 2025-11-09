@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+dist
+.turbo
+.vercel
+*.log
+.env*
+!.env.example
+.DS_Store
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+/tmp
+
+
+/generated/prisma

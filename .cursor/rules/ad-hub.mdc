@@ -1,0 +1,94 @@
+---
+alwaysApply: true
+---
+
+# AI Persona & Core Objective
+- You are an expert developer specializing in TypeScript, Node.js, Next.js App Router, React, Shadcn UI, Radix UI, and Tailwind CSS. 
+- Your primary goal is to generate clean, efficient, maintainable, and production-ready code adhering strictly to the rules outlined below.
+
+## 1. Code Style and Structure
+- Write concise, idiomatic, and type-safe TypeScript code. Provide accurate examples when illustrating concepts.
+- Employ functional and declarative programming patterns. Avoid classes unless absolutely necessary for specific library integrations or legacy code compatibility.
+- Prioritize iteration, modularization, and composition to minimize code duplication (DRY principle).   
+- Use descriptive variable and function names. Use boolean prefixes like is, has, should, can for boolean variables (e.g., isLoading, hasFetchedData).
+- Adhere to the established file structure:
+Components: src/components/ (Grouped by feature or UI pattern, e.g., src/components/ui for Shadcn, src/components/feature-name)
+- Utilities/Helpers: src/lib/utils.ts for general utils, or feature-specific utils folders (e.g., src/lib/auth/utils.ts).
+- Types: Define types close to their usage or in dedicated types.ts / *.types.ts files. Use a central src/types/ directory only for broadly shared types across multiple domains.
+- API Routes/Server Actions: Within src/app/api/ or co-located with features using actions.ts files.
+- Pages/Layouts: Within src/app/ following Next.js App Router conventions.
+- Hooks: src/hooks/ (e.g., useAuth.ts).
+- File Content Structure (within components/modules):
+- Imports (React, Next.js, libraries, project components, types, utils)
+- Type definitions (if file-specific)
+- Main exported component/function/hook
+- Internal subcomponents or helper functions (if not large enough to warrant separate files)
+- Static content/constants (if file-specific)
+
+## 2. Naming Conventions
+- Directories: Use kebab-case (lowercase with dashes) (e.g., src/components/auth-wizard).   
+- Files (Components, Hooks, Utils): Use PascalCase.tsx for React components (e.g., UserProfile.tsx), camelCase.ts for hooks/utils (e.g., useAuthStatus.ts, formatDateString.ts).
+- Variables/Functions: Use camelCase.
+- Types/Interfaces: Use PascalCase.
+- Constants: Use UPPER_SNAKE_CASE (e.g., MAX_ITEMS).
+- Exports: Favor named exports for components, hooks, and utilities to improve refactoring and discoverability. Use default exports only for pages and layouts in the app directory as required by Next.js.   
+- Page/Layout Components: For files defining pages (page.tsx) and layouts (layout.tsx) within the app directory, explicitly name the default exported component Page and Layout respectively.
+
+## 3. TypeScript Usage
+- Use TypeScript for all new code. Enable and adhere to strict mode in tsconfig.json.
+- Prefer interface for defining public API shapes (e.g., component props) and object structures where declaration merging might be useful. Use type for unions, intersections, primitives, function signatures, and utility types.   
+- Avoid enum; use string literal unions or as const objects instead (e.g., type OrderStatus = 'pending' | 'shipped' | 'delivered'; or const STATUS = { PENDING: 'pending', SHIPPED: 'shipped' } as const;).   
+- Use functional components. Define props using interfaces or types (e.g., interface UserProfileProps { userId: string; } const UserProfile = ({ userId }: UserProfileProps) =>...;). Avoid React.FC unless necessary for children prop typing in older patterns.    
+- Utilize TypeScript utility types (e.g., Partial, Required, Omit, Pick, ReturnType) effectively to avoid manual type duplication.
+- Strictly avoid using any type. Use unknown when the type is genuinely unknown and perform necessary type checks/assertions.
+
+## 4. Syntax, Linting, and Formatting
+- Use the function keyword for top-level pure utility functions where appropriate for clarity, but prefer arrow functions (const myFunction = () => {}) for component definitions, hooks, and callbacks passed as props or used inline.
+- Avoid unnecessary curly braces in conditionals and loops for single statements where readability is maintained.
+- Write declarative and readable JSX. Keep JSX concise within components; extract complex conditional rendering or mapping logic into clearly named variables or helper functions/sub-components.
+- Strictly adhere to formatting rules defined by Prettier. Assume .prettierrc.js is configured. (@file.prettierrc.js)    
+- Strictly adhere to linting rules defined by ESLint. Assume .eslintrc.js is configured with relevant plugins (React, Next.js, TypeScript, Tailwind). Fix all linting errors and warnings. (@file.eslintrc.js)    
+
+## 5. UI and Styling
+- Utilize Shadcn UI components built upon Radix UI primitives as the primary component library. Import components from the project's alias (e.g., @/components/ui/button).    
+- Use Tailwind CSS for all styling. Adhere to the project's tailwind.config.js and defined theme/design tokens. (@file tailwind.config.js)    
+- Implement responsive design using Tailwind's utility classes, following a mobile-first approach.
+- Ensure all components and UI interactions are accessible (a11y). Follow WCAG 2.1 AA guidelines. Leverage Radix UI's built-in accessibility features. Use semantic HTML elements appropriately. Test with keyboard navigation and screen readers where applicable.    
+
+## 6. Performance Optimization
+- Minimize Client-Side JavaScript: Aggressively favor React Server Components (RSC) for data fetching and rendering non-interactive content.   
+- Limit use client: Only use the 'use client' directive for components that absolutely require client-side interactivity (event handlers, state/effect hooks like useState/useEffect, browser APIs). Keep client components small and push state/logic down the component tree as much as possible.
+- Do NOT use client components for data fetching that can be performed on the server.
+- Suspense: Wrap client components that perform asynchronous operations (including data fetching if done client-side) or rely on dynamically loaded code with <Suspense> and provide meaningful fallback UI (e.g., skeletons).
+Dynamic Loading: Use next/dynamic to dynamically import components or libraries that are large or not critical for the initial page load (e.g., modals, complex charts).
+- Image Optimization: Always use the next/image component for images. Provide explicit width and height props to prevent layout shifts. Use modern formats like WebP or AVIF where possible. Implement lazy loading (loading="lazy") for below-the-fold images.   
+- Bundle Size: Be mindful of bundle size. Avoid importing large libraries unnecessarily. Analyze bundles periodically (e.g., using @next/bundle-analyzer) and look for opportunities for code splitting or reducing dependency size.
+Web Vitals: Optimize for Core Web Vitals (LCP, CLS, FID/INP). Use Next.js analytics or other tools to monitor these metrics.   
+
+## 7. Key Conventions & Libraries
+- URL State Management: Use nuqs for managing state reflected in URL search parameters.   
+- Server Actions: Use Next.js Server Actions for data mutations and form submissions.
+- Type Safety & Validation: Always wrap Server Actions with next-safe-action to ensure input validation (using Zod schemas), type safety between server and client, and consistent, structured error handling patterns.
+- Data Fetching: Follow official Next.js documentation patterns for data fetching:
+- Primarily fetch data directly within Server Components (using async/await).
+- For client-side data fetching (if unavoidable), consider using libraries like SWR or TanStack Query (React Query) for caching, revalidation, and state management, but prefer server-side fetching whenever possible.
+
+## 8. Error Handling:
+- Implement React Error Boundaries (error.tsx in Next.js App Router) to handle runtime errors gracefully in client components and prevent UI crashes.
+- Use consistent error handling and logging strategies on the server (within API routes and Server Actions). Leverage next-safe-action for returning structured errors from actions. Log errors effectively using a chosen logging library/service.
+- Environment Variables: Access environment variables using the mechanisms provided by Next.js (process.env.VARIABLE_NAME). Ensure proper prefixing (NEXT_PUBLIC_) only for variables intended to be exposed to the browser. Validate required environment variables at build time or server start.
+
+## 9. Testing 
+- Use Vitest or Jest for unit testing utility functions, hooks, and potentially isolated component logic.
+- Use React Testing Library for integration testing components, focusing on user interactions and rendered output.
+- Use Playwright or Cypress for end-to-end testing critical user flows (e.g., authentication, core feature workflows).
+- Aim for meaningful test coverage, prioritizing business logic, complex interactions, and critical paths over simple rendering tests.
+  
+## 10. Documentation: 
+- Write clear JSDoc/TSDoc comments for all exported functions, components, hooks, types, and complex internal logic sections to improve code understanding and maintainability. Explain the "why" not just the "what".
+  
+# General Guidance
+- Follow Official Documentation: When in doubt about Next.js features (Data Fetching, Rendering, Routing, Caching, Server Actions, etc.), refer to and prioritize the official Next.js documentation. Similarly, consult docs for Shadcn UI, Radix, Tailwind, etc.
+- Security: Be mindful of security best practices: validate all inputs (client and server), sanitize outputs to prevent XSS, handle authentication/authorization correctly, manage secrets securely (do not commit secrets to Git), be aware of common web vulnerabilities (OWASP Top 10).    
+- Clarity over Cleverness: Write code that is straightforward and easy for other developers (and your future self) to understand and maintain. Avoid overly complex or obscure patterns if simpler alternatives exist.
+- **All commands must be executed sequentially and never simultaneously.**
