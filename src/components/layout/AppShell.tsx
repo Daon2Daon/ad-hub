@@ -31,8 +31,8 @@ export const AppShell = ({ navItems, children, user }: AppShellProps) => {
   const activeItem = navItems.find((item) => pathname.startsWith(item.href));
 
   return (
-    <div className="flex min-h-screen bg-slate-100 text-slate-900">
-      <aside className="hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
+    <div className="flex min-h-screen overflow-hidden bg-slate-100 text-slate-900">
+      <aside className="hidden flex-shrink-0 flex-col border-r border-slate-200 bg-white lg:flex lg:w-60 xl:w-64">
         <div className="flex h-16 items-center border-b border-slate-200 px-6 text-lg font-semibold">
           Ad Hub
         </div>
@@ -55,25 +55,16 @@ export const AppShell = ({ navItems, children, user }: AppShellProps) => {
             );
           })}
         </nav>
-        <div className="border-t border-slate-200 px-4 py-5">
+        <div className="border-t border-slate-200 px-4 py-4">
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
             <p className="font-semibold text-slate-900">{user.name ?? user.loginId}</p>
             <p className="text-xs text-slate-500">{ROLE_LABEL[user.role]}</p>
-            <p className="mt-2 text-xs text-slate-500">
-              열람 가능 컬럼:{" "}
-              <span className="font-medium text-slate-700">
-                {Object.entries(user.columnAccess)
-                  .filter(([, canView]) => canView)
-                  .map(([key]) => COLUMN_LABELS[key as keyof typeof COLUMN_LABELS])
-                  .join(", ") || "권한 없음"}
-              </span>
-            </p>
           </div>
         </div>
       </aside>
 
-      <div className="flex min-h-screen flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+      <div className="flex min-h-screen flex-1 min-w-0 flex-col">
+        <header className="sticky top-0 z-10 flex h-16 min-w-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-6 lg:px-8">
           <div>
             <p className="text-sm font-semibold text-slate-900">
               {activeItem?.label ?? "Ad Hub"}
@@ -103,7 +94,7 @@ export const AppShell = ({ navItems, children, user }: AppShellProps) => {
           })}
         </nav>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="flex-1 min-w-0 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">{children}</main>
       </div>
     </div>
   );

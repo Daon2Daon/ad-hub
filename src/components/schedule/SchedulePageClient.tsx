@@ -4,11 +4,13 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   addMonths,
   eachDayOfInterval,
+  endOfDay,
   endOfMonth,
   endOfWeek,
   format,
   isWithinInterval,
   parseISO,
+  startOfDay,
   startOfMonth,
   startOfWeek,
   subMonths,
@@ -369,11 +371,11 @@ interface TimelineContext {
 }
 
 interface GanttRow {
-  id: string;
-  label: string;
-  channel: string;
-  department: string;
-  agency: string;
+    id: string;
+    label: string;
+    channel: string;
+    department: string;
+    agency: string;
   startDate: Date | null;
   endDate: Date | null;
   barStart: number | null;
@@ -398,39 +400,29 @@ function toDayDescriptor(date: Date) {
   return { key: formatted, year, month, day, weekday };
 }
 
-function buildTimelineContext(month: Date) {
-  const monthStartDescriptor = toDayDescriptor(startOfMonth(month));
-  const monthEndDescriptor = toDayDescriptor(endOfMonth(month));
+function buildTimelineContext(month: Date): TimelineContext {
+  const monthStart = startOfMonth(month);
+  const monthEnd = endOfMonth(month);
 
-  const timelineStartUtc =
-    Date.UTC(monthStartDescriptor.year, monthStartDescriptor.month - 1, monthStartDescriptor.day) -
-    monthStartDescriptor.weekday * DAY_IN_MS;
-  const timelineEndUtc =
-    Date.UTC(monthEndDescriptor.year, monthEndDescriptor.month - 1, monthEndDescriptor.day) +
-    (6 - monthEndDescriptor.weekday) * DAY_IN_MS;
+  const descriptors = eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) => toDayDescriptor(day));
+  const todayDescriptor = toDayDescriptor(new Date());
+  const todayKey = todayDescriptor.key;
 
-  const totalDays = Math.round((timelineEndUtc - timelineStartUtc) / DAY_IN_MS) + 1;
-  const todayKey = toDayDescriptor(new Date()).key;
+  const days: TimelineDayCell[] = descriptors.map((descriptor) => ({
+    key: descriptor.key,
+    year: descriptor.year,
+    month: descriptor.month,
+    day: descriptor.day,
+    weekday: descriptor.weekday,
+    label: descriptor.day,
+    isWeekend: descriptor.weekday === 0 || descriptor.weekday === 6,
+    isToday: descriptor.key === todayKey,
+  }));
 
-  const days: TimelineDayCell[] = [];
-  const dayIndexMap: Record<string, number> = {};
-
-  for (let index = 0; index < totalDays; index += 1) {
-    const utcTime = timelineStartUtc + index * DAY_IN_MS;
-    const descriptor = toDayDescriptor(new Date(utcTime));
-    const dayCell: TimelineDayCell = {
-      key: descriptor.key,
-      year: descriptor.year,
-      month: descriptor.month,
-      day: descriptor.day,
-      weekday: descriptor.weekday,
-      label: descriptor.day,
-      isWeekend: descriptor.weekday === 0 || descriptor.weekday === 6,
-      isToday: descriptor.key === todayKey,
-    };
-    days.push(dayCell);
-    dayIndexMap[dayCell.key] = index;
-  }
+  const dayIndexMap = days.reduce<Record<string, number>>((acc, day, index) => {
+    acc[day.key] = index;
+    return acc;
+  }, {});
 
   const months: TimelineMonthBlock[] = [];
   let currentMonthKey = "";
@@ -457,7 +449,7 @@ function buildTimelineContext(month: Date) {
     months.push({ key: currentMonthKey, label: currentMonthLabel, length: currentMonthLength });
   }
 
-  const todayOffset = days.findIndex((day) => day.isToday);
+  const todayOffset = todayKey in dayIndexMap ? dayIndexMap[todayKey] : null;
 
   const rangeLabel =
     days.length > 0
@@ -470,7 +462,7 @@ function buildTimelineContext(month: Date) {
       : { start: "", end: "" };
 
   return {
-    totalDays,
+    totalDays: days.length,
     days,
     months,
     todayOffset: todayOffset >= 0 ? todayOffset : null,
@@ -485,45 +477,55 @@ function buildGanttData(records: ScheduleRecord[], month: Date): GanttData {
   const firstKey = timeline.days[0]?.key;
   const lastKey = timeline.days[timeline.days.length - 1]?.key;
 
-  const rows: GanttRow[] = [];
+  const normalized = records
+    .map((record) => {
+      if (!record.startDate || !record.endDate) {
+        return null;
+      }
 
-  const overlapping = records.filter((record) => {
-    if (!record.startDate || !record.endDate) {
-      return false;
-    }
-    if (!firstKey || !lastKey) {
-      return false;
-    }
+      const startDate = parseISO(record.startDate);
+      const endDate = parseISO(record.endDate);
+      const startDescriptor = toDayDescriptor(startDate);
+      const endDescriptor = toDayDescriptor(endDate);
 
-    const recordStartKey = toDayDescriptor(parseISO(record.startDate)).key;
-    const recordEndKey = toDayDescriptor(parseISO(record.endDate)).key;
+      return {
+        record,
+        startDate,
+        endDate,
+        startDescriptor,
+        endDescriptor,
+      };
+    })
+    .filter((value): value is NonNullable<typeof value> => Boolean(value))
+    .filter(({ startDescriptor, endDescriptor }) => {
+      if (!firstKey || !lastKey) {
+        return false;
+      }
+      return endDescriptor.key >= firstKey && startDescriptor.key <= lastKey;
+    });
 
-    return recordEndKey >= firstKey && recordStartKey <= lastKey;
-  });
-
-  overlapping
-    .sort((a, b) => {
+  const rows: GanttRow[] = normalized
+    .sort(({ record: a, startDate: startA }, { record: b, startDate: startB }) => {
       if (a.channel !== b.channel) {
         return a.channel.localeCompare(b.channel, "ko");
       }
       if (a.campaign !== b.campaign) {
         return a.campaign.localeCompare(b.campaign, "ko");
       }
-      return (a.startDate ?? "").localeCompare(b.startDate ?? "");
+      const timeA = startA.getTime();
+      const timeB = startB.getTime();
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
+      return a.startDate.localeCompare(b.startDate);
     })
-    .forEach((record) => {
-      const startDate = record.startDate ? parseISO(record.startDate) : null;
-      const endDate = record.endDate ? parseISO(record.endDate) : null;
-
-      const startKey = startDate ? toDayDescriptor(startDate).key : null;
-      const endKey = endDate ? toDayDescriptor(endDate).key : null;
-
+    .map(({ record, startDate, endDate, startDescriptor, endDescriptor }) => {
       let barStart: number | null = null;
       let barLength: number | null = null;
 
-      if (startKey && endKey && firstKey && lastKey) {
-        const clampedStartKey = startKey < firstKey ? firstKey : startKey;
-        const clampedEndKey = endKey > lastKey ? lastKey : endKey;
+      if (firstKey && lastKey) {
+        const clampedStartKey = startDescriptor.key < firstKey ? firstKey : startDescriptor.key;
+        const clampedEndKey = endDescriptor.key > lastKey ? lastKey : endDescriptor.key;
 
         const startIndex = timeline.dayIndexMap[clampedStartKey];
         const endIndex = timeline.dayIndexMap[clampedEndKey];
@@ -534,17 +536,17 @@ function buildGanttData(records: ScheduleRecord[], month: Date): GanttData {
         }
       }
 
-      rows.push({
+      return {
         id: record.id,
         label: record.campaign,
         channel: record.channel,
         department: record.department,
         agency: record.agency,
-        startDate,
-        endDate,
+        start: startDate,
+        end: endDate,
         barStart,
         barLength,
-      });
+      };
     });
 
   return { rows, timeline };
@@ -564,21 +566,25 @@ function buildCalendarData(records: ScheduleRecord[], month: Date): CalendarData
 
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
+  const normalized = records
+    .map((record) => {
+      if (!record.startDate || !record.endDate) {
+        return null;
+      }
+      return {
+        record,
+        start: startOfDay(parseISO(record.startDate)),
+        end: endOfDay(parseISO(record.endDate)),
+      };
+    })
+    .filter((value): value is NonNullable<typeof value> => Boolean(value));
+
   const schedulesByDay = days.reduce<Record<string, ScheduleRecord[]>>((acc, day) => {
     const key = format(day, "yyyy-MM-dd");
 
-    const matches = records.filter((record) => {
-      if (!record.startDate || !record.endDate) {
-        return false;
-      }
-
-      const range = {
-        start: parseISO(record.startDate),
-        end: parseISO(record.endDate),
-      };
-
-      return isWithinInterval(day, range);
-    });
+    const matches = normalized
+      .filter(({ start, end }) => isWithinInterval(day, { start, end }))
+      .map(({ record }) => record);
 
     acc[key] = matches;
     return acc;
@@ -689,10 +695,10 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
               const displayChannel = columnAccess.channel ? row.channel : "권한 없음";
               const displayDepartment = columnAccess.department ? row.department : "권한 없음";
               const displayAgency = columnAccess.agency ? row.agency : "권한 없음";
-              const periodLabel =
+          const periodLabel =
                 columnAccess.schedule && row.startDate && row.endDate
                   ? `${format(row.startDate, "yyyy.MM.dd")} ~ ${format(row.endDate, "yyyy.MM.dd")}`
-                  : "권한 없음";
+              : "권한 없음";
 
               const canRenderBar =
                 columnAccess.schedule &&
@@ -702,7 +708,7 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
 
               const rowBackgroundClass = rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50";
 
-              return (
+          return (
                 <div key={row.id} className="flex border-b border-slate-200">
                   <div
                     className={cn(
@@ -713,10 +719,10 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                   >
                     <p className="font-semibold text-slate-900">{displayLabel}</p>
                     <p className="text-xs text-slate-500">
-                      {displayChannel} · {displayDepartment} · {displayAgency}
+                    {displayChannel} · {displayDepartment} · {displayAgency}
                     </p>
                     <p className="mt-1 text-xs text-slate-400">{periodLabel}</p>
-                  </div>
+                </div>
                   <div className={cn("relative", rowBackgroundClass)} style={{ width: timelineWidth }}>
                     <div className="flex h-full" aria-hidden>
                       {timeline.days.map((day, index) => (
@@ -730,9 +736,9 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                           style={{ width: TIMELINE_DAY_WIDTH }}
                         />
                       ))}
-                    </div>
+              </div>
                     {todayPosition !== null ? (
-                      <span
+                  <span
                         aria-hidden
                         className="pointer-events-none absolute inset-y-2 z-20 w-[3px] -translate-x-1/2 rounded-full bg-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.6)]"
                         style={{ left: todayPosition }}
@@ -744,7 +750,7 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                           "absolute top-2 flex h-9 items-center justify-center rounded-md text-xs font-semibold text-white shadow-sm transition",
                           variant.barClass,
                         )}
-                        style={{
+                    style={{
                           left: row.barStart! * TIMELINE_DAY_WIDTH + 2,
                           width: Math.max(row.barLength! * TIMELINE_DAY_WIDTH - 4, TIMELINE_DAY_WIDTH / 2),
                         }}
@@ -754,15 +760,15 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                           {displayLabel} 일정 {periodLabel}
                         </span>
                       </div>
-                    ) : (
+                ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
                         일정 정보 없음
                       </div>
-                    )}
-                  </div>
+                )}
+              </div>
                 </div>
-              );
-            })}
+          );
+        })}
           </div>
         </div>
       </div>

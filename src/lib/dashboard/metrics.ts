@@ -28,16 +28,12 @@ export function getDefaultRanges(baseDate: Date = new Date()): { month: DateRang
   };
 }
 
-export function filterByRange(records: CampaignRecord[], range: DateRange) {
-  return records.filter((record) => {
-    const start = new Date(record.startDate);
-    const end = new Date(record.endDate);
-    return (
-      isWithinInterval(start, range) ||
-      isWithinInterval(end, range) ||
-      (start <= range.start && end >= range.end)
-    );
-  });
+function overlaps(range: DateRange, start: Date, end: Date) {
+  return (
+    isWithinInterval(start, range) ||
+    isWithinInterval(end, range) ||
+    (start <= range.start && end >= range.end)
+  );
 }
 
 export function calculateKpis(
@@ -88,8 +84,19 @@ export function generateDashboardData(
   const range = options.customRange ?? defaults.month;
 
   const scoped = filterRowsByScope(allRecords, profile);
-  const periodRecords = filterByRange(scoped, range);
-  const yearlyScopedRecords = filterByRange(scoped, defaults.year);
+  const normalized = scoped.map((record) => ({
+    record,
+    start: new Date(record.startDate),
+    end: new Date(record.endDate),
+  }));
+
+  const periodRecords = normalized
+    .filter(({ start, end }) => overlaps(range, start, end))
+    .map(({ record }) => record);
+
+  const yearlyScopedRecords = normalized
+    .filter(({ start, end }) => overlaps(defaults.year, start, end))
+    .map(({ record }) => record);
 
   const kpis = calculateKpis(periodRecords, {
     yearRecords: yearlyScopedRecords,
