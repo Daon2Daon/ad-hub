@@ -5,8 +5,11 @@ import { filterRowsByScope } from "@/lib/auth/permissions";
 import { createDefaultAccessProfile } from "@/lib/auth/profile";
 import { getServerAuthSession } from "@/lib/auth/session";
 import { fetchCampaignRecords } from "@/lib/dashboard/repository";
-import { buildScheduleColumnAccess, buildScheduleOptions, toScheduleRecord } from "@/lib/schedule/utils";
-import type { ScheduleOptions, ScheduleRecord } from "@/types/schedule";
+import { buildManagementColumnAccess, buildManagementOptionsFromMasterData } from "@/lib/management/utils";
+import { fetchMasterDataItems } from "@/lib/master-data/repository";
+import { buildScheduleColumnAccess, buildScheduleOptionsFromMasterData, toScheduleRecord } from "@/lib/schedule/utils";
+import type { ScheduleRecord } from "@/types/schedule";
+import type { ManagementColumnAccess, ManagementOptions } from "@/types/management";
 
 const Page = async () => {
   const session = await getServerAuthSession();
@@ -20,11 +23,13 @@ const Page = async () => {
   }
 
   const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
-  const campaigns = await fetchCampaignRecords();
+  const [campaigns, masterData] = await Promise.all([fetchCampaignRecords(), fetchMasterDataItems()]);
   const scopedCampaigns = filterRowsByScope(campaigns, profile);
 
   const columnAccess = buildScheduleColumnAccess(profile);
-  const options: ScheduleOptions = buildScheduleOptions(scopedCampaigns, columnAccess);
+  const options = buildScheduleOptionsFromMasterData(masterData, columnAccess);
+  const formColumnAccess: ManagementColumnAccess = buildManagementColumnAccess(profile);
+  const formOptions: ManagementOptions = buildManagementOptionsFromMasterData(masterData, formColumnAccess);
 
   const scheduleRecords: ScheduleRecord[] = scopedCampaigns.map((campaign) =>
     toScheduleRecord(campaign, columnAccess),
@@ -39,7 +44,13 @@ const Page = async () => {
         </p>
       </header>
 
-      <SchedulePageClient records={scheduleRecords} columnAccess={columnAccess} options={options} />
+      <SchedulePageClient
+        records={scheduleRecords}
+        columnAccess={columnAccess}
+        options={options}
+        formColumnAccess={formColumnAccess}
+        formOptions={formOptions}
+      />
     </main>
   );
 };

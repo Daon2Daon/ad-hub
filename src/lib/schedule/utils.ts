@@ -9,6 +9,7 @@ import type {
   ScheduleOptions,
   ScheduleRecord,
 } from "@/types/schedule";
+import type { MasterDataCategory, MasterDataItem } from "@/types/master-data";
 
 export function buildScheduleColumnAccess(profile: UserAccessProfile): ScheduleColumnAccess {
   return {
@@ -90,6 +91,51 @@ export function mergeScheduleOptions(
     departments: merge(current.departments, values.department),
     agencies: merge(current.agencies, values.agency),
   };
+}
+
+const SCHEDULE_CATEGORY_TO_OPTION_KEY: Record<Exclude<MasterDataCategory, "budgetAccount">, keyof ScheduleOptions> = {
+  campaign: "campaigns",
+  creative: "creatives",
+  channel: "channels",
+  department: "departments",
+  agency: "agencies",
+};
+
+const SCHEDULE_OPTION_TO_COLUMN_KEY: Record<keyof ScheduleOptions, keyof ScheduleColumnAccess> = {
+  campaigns: "campaign",
+  creatives: "creative",
+  channels: "channel",
+  departments: "department",
+  agencies: "agency",
+};
+
+export function buildScheduleOptionsFromMasterData(
+  masterData: Record<MasterDataCategory, MasterDataItem[]>,
+  columnAccess: ScheduleColumnAccess,
+): ScheduleOptions {
+  const base: ScheduleOptions = {
+    campaigns: [],
+    creatives: [],
+    channels: [],
+    departments: [],
+    agencies: [],
+  };
+
+  (Object.entries(SCHEDULE_CATEGORY_TO_OPTION_KEY) as [MasterDataCategory, keyof ScheduleOptions][]).forEach(
+    ([category, optionKey]) => {
+      const columnKey = SCHEDULE_OPTION_TO_COLUMN_KEY[optionKey];
+      if (!columnAccess[columnKey]) {
+        base[optionKey] = [];
+        return;
+      }
+
+      base[optionKey] = (masterData[category] ?? [])
+        .map((item) => item.value)
+        .sort((a, b) => a.localeCompare(b, "ko"));
+    },
+  );
+
+  return base;
 }
 
 

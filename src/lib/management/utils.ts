@@ -7,6 +7,7 @@ import type {
   ManagementOptionValues,
   ManagementRow,
 } from "@/types/management";
+import type { MasterDataCategory, MasterDataItem } from "@/types/master-data";
 
 export function buildManagementColumnAccess(profile: UserAccessProfile): ManagementColumnAccess {
   return {
@@ -79,4 +80,50 @@ export function mergeManagementOptions(
     departments: merge(current.departments, values.department),
     agencies: merge(current.agencies, values.agency),
   };
+}
+
+const MANAGEMENT_CATEGORY_TO_OPTION_KEY: Record<MasterDataCategory, keyof ManagementOptions> = {
+  campaign: "campaigns",
+  creative: "creatives",
+  channel: "channels",
+  budgetAccount: "budgetAccounts",
+  department: "departments",
+  agency: "agencies",
+};
+
+const MANAGEMENT_OPTION_TO_COLUMN_KEY: Record<keyof ManagementOptions, keyof ManagementColumnAccess> = {
+  campaigns: "campaign",
+  creatives: "creative",
+  channels: "channel",
+  budgetAccounts: "budgetAccount",
+  departments: "department",
+  agencies: "agency",
+};
+
+export function buildManagementOptionsFromMasterData(
+  masterData: Record<MasterDataCategory, MasterDataItem[]>,
+  columnAccess: ManagementColumnAccess,
+): ManagementOptions {
+  const result: ManagementOptions = {
+    campaigns: [],
+    creatives: [],
+    channels: [],
+    budgetAccounts: [],
+    departments: [],
+    agencies: [],
+  };
+
+  (Object.entries(masterData) as [MasterDataCategory, MasterDataItem[]][]).forEach(([category, items]) => {
+    const optionKey = MANAGEMENT_CATEGORY_TO_OPTION_KEY[category];
+    const columnKey = MANAGEMENT_OPTION_TO_COLUMN_KEY[optionKey];
+
+    if (!columnAccess[columnKey]) {
+      result[optionKey] = [];
+      return;
+    }
+
+    result[optionKey] = items.map((item) => item.value).sort((a, b) => a.localeCompare(b, "ko"));
+  });
+
+  return result;
 }

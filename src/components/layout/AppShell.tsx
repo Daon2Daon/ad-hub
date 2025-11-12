@@ -103,7 +103,7 @@ export const AppShell = ({ navItems, children, user }: AppShellProps) => {
 const COLUMN_LABELS: Record<keyof ScheduleColumnAccess, string> = {
   campaign: "캠페인",
   creative: "소재",
-  channel: "매체",
+  channel: "매체/구분",
   schedule: "일정",
   department: "담당부서",
   agency: "대행사",

@@ -10,6 +10,7 @@ import { actionClient } from "@/lib/safe-action";
 import { mapCampaignModelToRecord } from "@/lib/schedule/utils";
 import { prisma } from "@/lib/prisma";
 import { buildManagementColumnAccess, toManagementRow } from "@/lib/management/utils";
+import type { MasterDataCategory } from "@/types/master-data";
 import type { UserAccessProfile } from "@/types/auth";
 import type { CampaignRecord } from "@/types/dashboard";
 import type { ManagementOptionValues, ManagementRow } from "@/types/management";
@@ -25,7 +26,7 @@ const createCampaignSchema = z
   .object({
     campaign: z.string().trim().min(1, "캠페인을 입력해주세요.").max(120),
     creative: z.string().trim().max(120).optional(),
-    channel: z.string().trim().min(1, "매체를 입력해주세요.").max(80),
+    channel: z.string().trim().min(1, "매체/구분을 입력해주세요.").max(80),
     budgetAccount: z.string().trim().max(80).optional(),
     department: z.string().trim().min(1, "담당부서를 입력해주세요.").max(80),
     agency: z.string().trim().min(1, "대행사를 입력해주세요.").max(80),
@@ -147,6 +148,42 @@ function revalidateManagementRelatedPaths() {
   revalidatePath(SCHEDULE_PATH);
 }
 
+async function assertMasterDataValues(
+  values: { category: MasterDataCategory; value: string | null | undefined; optional?: boolean }[],
+) {
+  const normalized = values
+    .filter((entry) => !(entry.optional && !entry.value?.trim()))
+    .map(({ category, value }) => {
+      const trimmed = value?.trim();
+      if (!trimmed) {
+        throw new Error("마스터 데이터에 등록된 값을 선택해주세요.");
+      }
+      return { category, value: trimmed };
+    });
+
+  if (normalized.length === 0) {
+    return;
+  }
+
+  const found = await prisma.masterDataItem.findMany({
+    where: {
+      OR: normalized.map(({ category, value }) => ({ category, value })),
+    },
+    select: {
+      category: true,
+      value: true,
+    },
+  });
+
+  const missing = normalized.filter(
+    ({ category, value }) => !found.some((record) => record.category === category && record.value === value),
+  );
+
+  if (missing.length > 0) {
+    throw new Error("마스터 데이터에 등록된 값이 아닙니다. 먼저 마스터 데이터에서 값을 추가해주세요.");
+  }
+}
+
 export const createCampaignAction = actionClient
   .schema(createCampaignSchema)
   .action(async ({ parsedInput }) => {
@@ -188,19 +225,31 @@ export const createCampaignAction = actionClient
       ? parsedInput.creative?.trim() || DEFAULT_PLACEHOLDER
       : DEFAULT_PLACEHOLDER;
     const budgetAccountValue = parsedInput.budgetAccount?.trim() || DEFAULT_BUDGET_ACCOUNT;
+    const channelValue = parsedInput.channel.trim();
+    const departmentValue = parsedInput.department.trim();
+    const agencyValue = parsedInput.agency.trim();
+
+    await assertMasterDataValues([
+      { category: "campaign", value: parsedInput.campaign },
+      { category: "creative", value: parsedInput.creative, optional: true },
+      { category: "channel", value: channelValue },
+      { category: "budgetAccount", value: budgetAccountValue },
+      { category: "department", value: departmentValue },
+      { category: "agency", value: agencyValue },
+    ]);
 
     const created = await prisma.campaign.create({
       data: {
         ownerId: session.user.id,
         campaign: parsedInput.campaign,
         creative: creativeValue,
-        channel: parsedInput.channel,
+        channel: channelValue,
         startDate: parsedInput.startDate,
         endDate: parsedInput.endDate,
         spend: new Prisma.Decimal(parsedInput.spend ?? 0),
         budgetAccount: budgetAccountValue,
-        department: parsedInput.department,
-        agency: parsedInput.agency,
+        department: departmentValue,
+        agency: agencyValue,
       },
     });
 
@@ -254,6 +303,7 @@ export const updateCampaignAction = actionClient
       if (!columnAccess.campaign) {
         throw new Error("캠페인 컬럼을 수정할 권한이 없습니다.");
       }
+      await assertMasterDataValues([{ category: "campaign", value: parsedInput.campaign }]);
       data.campaign = parsedInput.campaign;
     }
 
@@ -261,13 +311,15 @@ export const updateCampaignAction = actionClient
       if (!columnAccess.creative) {
         throw new Error("소재 컬럼을 수정할 권한이 없습니다.");
       }
+      await assertMasterDataValues([{ category: "creative", value: parsedInput.creative, optional: true }]);
       data.creative = parsedInput.creative || DEFAULT_PLACEHOLDER;
     }
 
     if (parsedInput.channel !== undefined) {
       if (!columnAccess.channel) {
-        throw new Error("매체 컬럼을 수정할 권한이 없습니다.");
+        throw new Error("매체/구분 컬럼을 수정할 권한이 없습니다.");
       }
+      await assertMasterDataValues([{ category: "channel", value: parsedInput.channel }]);
       data.channel = parsedInput.channel;
     }
 
@@ -275,6 +327,7 @@ export const updateCampaignAction = actionClient
       if (!columnAccess.budgetAccount) {
         throw new Error("예산계정 컬럼을 수정할 권한이 없습니다.");
       }
+      await assertMasterDataValues([{ category: "budgetAccount", value: parsedInput.budgetAccount }]);
       data.budgetAccount = parsedInput.budgetAccount || DEFAULT_BUDGET_ACCOUNT;
     }
 
@@ -282,6 +335,7 @@ export const updateCampaignAction = actionClient
       if (!columnAccess.department) {
         throw new Error("담당부서 컬럼을 수정할 권한이 없습니다.");
       }
+      await assertMasterDataValues([{ category: "department", value: parsedInput.department }]);
       data.department = parsedInput.department;
     }
 
@@ -289,6 +343,7 @@ export const updateCampaignAction = actionClient
       if (!columnAccess.agency) {
         throw new Error("대행사 컬럼을 수정할 권한이 없습니다.");
       }
+      await assertMasterDataValues([{ category: "agency", value: parsedInput.agency }]);
       data.agency = parsedInput.agency;
     }
 

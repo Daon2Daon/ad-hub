@@ -24,6 +24,15 @@ enum UserStatus {
   suspended
 }
 
+enum MasterDataCategory {
+  campaign
+  creative
+  channel
+  budgetAccount
+  department
+  agency
+}
+
 model User {
   id           String        @id @default(uuid())
   loginId      String        @unique
@@ -111,4 +120,15 @@ model Campaign {
   @@index([department])
   @@index([agency])
   @@index([channel])
+}
+
+model MasterDataItem {
+  id        String             @id @default(uuid())
+  category  MasterDataCategory
+  value     String
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([category, value])
+  @@index([category])
 }

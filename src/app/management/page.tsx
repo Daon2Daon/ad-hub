@@ -7,9 +7,10 @@ import { getServerAuthSession } from "@/lib/auth/session";
 import { fetchCampaignRecords } from "@/lib/dashboard/repository";
 import {
   buildManagementColumnAccess,
-  buildManagementOptions,
+  buildManagementOptionsFromMasterData,
   toManagementRow,
 } from "@/lib/management/utils";
+import { fetchMasterDataItems } from "@/lib/master-data/repository";
 
 const Page = async () => {
   const session = await getServerAuthSession();
@@ -25,11 +26,11 @@ const Page = async () => {
   const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
   const columnAccess = buildManagementColumnAccess(profile);
 
-  const campaigns = await fetchCampaignRecords();
+  const [campaigns, masterData] = await Promise.all([fetchCampaignRecords(), fetchMasterDataItems()]);
   const scopedRecords = filterRowsByScope(campaigns, profile);
 
   const rows = scopedRecords.map((record) => toManagementRow(record, columnAccess));
-  const options = buildManagementOptions(scopedRecords, columnAccess);
+  const options = buildManagementOptionsFromMasterData(masterData, columnAccess);
 
   const totalSpend = columnAccess.spend
     ? scopedRecords.reduce((acc, record) => acc + record.spend, 0)

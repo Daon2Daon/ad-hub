@@ -18,14 +18,23 @@ import {
 import { useRouter } from "next/navigation";
 import { useAction } from "next-safe-action/hooks";
 
+import {
+  CampaignFormModal,
+  EMPTY_CAMPAIGN_FORM_STATE,
+  REQUIRED_CREATE_COLUMNS,
+  type CampaignFormState,
+} from "@/components/management/CampaignFormModal";
+import { createCampaignAction } from "@/lib/management/actions";
+import { mergeManagementOptions } from "@/lib/management/utils";
 import { cn } from "@/lib/utils";
-import { createScheduleAction } from "@/lib/schedule/actions";
 import { mergeScheduleOptions } from "@/lib/schedule/utils";
 import type {
   ScheduleColumnAccess,
   ScheduleOptions,
   ScheduleRecord,
+  ScheduleOptionValues,
 } from "@/types/schedule";
+import type { ManagementColumnAccess, ManagementOptions } from "@/types/management";
 
 type ScheduleView = "gantt" | "calendar";
 
@@ -33,6 +42,8 @@ interface SchedulePageClientProps {
   records: ScheduleRecord[];
   columnAccess: ScheduleColumnAccess;
   options: ScheduleOptions;
+  formColumnAccess: ManagementColumnAccess;
+  formOptions: ManagementOptions;
 }
 
 const VIEW_OPTIONS: { value: ScheduleView; label: string }[] = [
@@ -70,16 +81,25 @@ function getColorVariant(seed: string): ColorVariant {
   return COLOR_VARIANTS[index];
 }
 
-export const SchedulePageClient = ({ records, columnAccess, options }: SchedulePageClientProps) => {
+export const SchedulePageClient = ({
+  records,
+  columnAccess,
+  options,
+  formColumnAccess,
+  formOptions,
+}: SchedulePageClientProps) => {
   const router = useRouter();
   const [view, setView] = useState<ScheduleView>("gantt");
   const [items, setItems] = useState<ScheduleRecord[]>(records);
   const [optionSets, setOptionSets] = useState<ScheduleOptions>(options);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formOptionSets, setFormOptionSets] = useState<ManagementOptions>(formOptions);
+  const [formState, setFormState] = useState<CampaignFormState>(EMPTY_CAMPAIGN_FORM_STATE);
+  const [formOpen, setFormOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
   const [selectedChannel, setSelectedChannel] = useState<string>(ALL_OPTION);
   const [selectedAgency, setSelectedAgency] = useState<string>(ALL_OPTION);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   useEffect(() => {
     setItems(records);
@@ -88,6 +108,12 @@ export const SchedulePageClient = ({ records, columnAccess, options }: ScheduleP
   useEffect(() => {
     setOptionSets(options);
   }, [options]);
+
+  useEffect(() => {
+    setFormOptionSets(formOptions);
+  }, [formOptions]);
+
+  const canCreateCampaign = REQUIRED_CREATE_COLUMNS.every((key) => formColumnAccess[key]);
 
   useEffect(() => {
     if (selectedChannel !== ALL_OPTION && !optionSets.channels.includes(selectedChannel)) {
@@ -119,15 +145,36 @@ export const SchedulePageClient = ({ records, columnAccess, options }: ScheduleP
     [filteredItems, currentMonth],
   );
 
-  const { execute: submitSchedule, isExecuting: isSubmitting } = useAction(createScheduleAction, {
+  const { execute: createCampaign, isExecuting: isCreating } = useAction(createCampaignAction, {
     onSuccess: ({ data }) => {
       if (!data) {
         return;
       }
 
-      setItems((prev) => [...prev, data.record]);
-      setOptionSets((prev) => mergeScheduleOptions(prev, data.optionValues));
-      setIsModalOpen(false);
+      const newRecord: ScheduleRecord = {
+        id: data.row.id,
+        campaign: data.row.campaign,
+        creative: data.row.creative,
+        channel: data.row.channel,
+        department: data.row.department,
+        agency: data.row.agency,
+        startDate: data.row.startDate,
+        endDate: data.row.endDate,
+      };
+
+      const scheduleOptionValues: ScheduleOptionValues = {
+        campaign: data.optionValues.campaign,
+        creative: data.optionValues.creative,
+        channel: data.optionValues.channel,
+        department: data.optionValues.department,
+        agency: data.optionValues.agency,
+      };
+
+      setItems((prev) => [...prev, newRecord]);
+      setOptionSets((prev) => mergeScheduleOptions(prev, scheduleOptionValues));
+      setFormOptionSets((prev) => mergeManagementOptions(prev, data.optionValues));
+      setFormOpen(false);
+      setFormState(EMPTY_CAMPAIGN_FORM_STATE);
       setFormError(null);
       router.refresh();
     },
@@ -135,7 +182,7 @@ export const SchedulePageClient = ({ records, columnAccess, options }: ScheduleP
       const message =
         typeof error.serverError === "string"
           ? error.serverError
-          : "일정 등록 중 문제가 발생했습니다.";
+          : "데이터 등록 중 문제가 발생했습니다.";
       setFormError(message);
     },
   });
@@ -144,16 +191,15 @@ export const SchedulePageClient = ({ records, columnAccess, options }: ScheduleP
     setCurrentMonth((prev) => (direction === "prev" ? subMonths(prev, 1) : addMonths(prev, 1)));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleResetMonth = () => {
+    setCurrentMonth(startOfMonth(new Date()));
+  };
+
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError(null);
 
-    if (isSubmitting) {
-      return;
-    }
-
-    if (!columnAccess.schedule) {
-      setFormError("일정 등록 권한이 없습니다.");
+    if (isCreating) {
       return;
     }
 
@@ -162,18 +208,35 @@ export const SchedulePageClient = ({ records, columnAccess, options }: ScheduleP
     const campaignInput = formData.get("campaign")?.toString().trim() ?? "";
     const creativeInput = formData.get("creative")?.toString().trim() ?? "";
     const channelInput = formData.get("channel")?.toString().trim() ?? "";
+    const budgetAccountInput = formData.get("budgetAccount")?.toString().trim() ?? "";
     const departmentInput = formData.get("department")?.toString().trim() ?? "";
     const agencyInput = formData.get("agency")?.toString().trim() ?? "";
     const startInput = formData.get("startDate")?.toString().trim() ?? "";
     const endInput = formData.get("endDate")?.toString().trim() ?? "";
+    const spendInput = formData.get("spend")?.toString().trim() ?? "";
 
-    if (columnAccess.campaign && !campaignInput) {
+    if (formColumnAccess.campaign && !campaignInput) {
       setFormError("캠페인을 입력해주세요.");
       return;
     }
 
-    if (columnAccess.channel && !channelInput) {
-      setFormError("매체를 입력해주세요.");
+    if (formColumnAccess.channel && !channelInput) {
+      setFormError("매체/구분을 입력해주세요.");
+      return;
+    }
+
+    if (formColumnAccess.budgetAccount && !budgetAccountInput) {
+      setFormError("예산계정을 입력해주세요.");
+      return;
+    }
+
+    if (formColumnAccess.department && !departmentInput) {
+      setFormError("담당부서를 입력해주세요.");
+      return;
+    }
+
+    if (formColumnAccess.agency && !agencyInput) {
+      setFormError("대행사를 입력해주세요.");
       return;
     }
 
@@ -182,28 +245,43 @@ export const SchedulePageClient = ({ records, columnAccess, options }: ScheduleP
       return;
     }
 
-    const start = new Date(startInput);
-    const end = new Date(endInput);
+    const startDate = new Date(startInput);
+    const endDate = new Date(endInput);
 
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
       setFormError("날짜 형식이 올바르지 않습니다.");
       return;
     }
 
-    if (start > end) {
+    if (startDate > endDate) {
       setFormError("시작일은 종료일보다 늦을 수 없습니다.");
       return;
     }
 
-    submitSchedule({
+    const spendValue =
+      formColumnAccess.spend && spendInput !== "" ? Number(spendInput) : undefined;
+
+    if (spendValue !== undefined && Number.isNaN(spendValue)) {
+      setFormError("광고비는 숫자로 입력해주세요.");
+      return;
+    }
+
+    createCampaign({
       campaign: campaignInput,
       creative: creativeInput || undefined,
       channel: channelInput,
-      department: departmentInput || undefined,
-      agency: agencyInput || undefined,
-      startDate: start,
-      endDate: end,
+      budgetAccount: budgetAccountInput || undefined,
+      department: departmentInput,
+      agency: agencyInput,
+      startDate,
+      endDate,
+      spend: spendValue,
     });
+  };
+
+  const handleFilterReset = () => {
+    setSelectedChannel(ALL_OPTION);
+    setSelectedAgency(ALL_OPTION);
   };
 
   const renderView = () => {
@@ -230,29 +308,43 @@ export const SchedulePageClient = ({ records, columnAccess, options }: ScheduleP
     return <ScheduleCalendar {...calendarData} columnAccess={columnAccess} />;
   };
 
+  const isFilterPristine = selectedChannel === ALL_OPTION && selectedAgency === ALL_OPTION;
+  const monthRangeLabel = `${format(startOfMonth(currentMonth), "yyyy.MM.dd")} ~ ${format(
+    endOfMonth(currentMonth),
+    "yyyy.MM.dd",
+  )}`;
+
+  useEffect(() => {
+    if (!isFilterPristine && !isFilterPanelOpen) {
+      setIsFilterPanelOpen(true);
+    }
+  }, [isFilterPristine, isFilterPanelOpen]);
+
   return (
     <section className="flex flex-col gap-6">
-      <div className="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {VIEW_OPTIONS.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setView(value)}
-                className={cn(
-                  "rounded-lg border px-4 py-2 text-sm font-medium transition",
-                  view === value
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap gap-2">
+          {VIEW_OPTIONS.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setView(value)}
+              className={cn(
+                "rounded-lg border px-4 py-2 text-sm font-medium transition",
+                view === value
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-          <div className="flex items-center gap-2">
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => handleMonthChange("prev")}
@@ -272,73 +364,108 @@ export const SchedulePageClient = ({ records, columnAccess, options }: ScheduleP
             >
               다음 달
             </button>
+            <button
+              type="button"
+              onClick={handleResetMonth}
+              className="rounded-lg border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+            >
+              오늘
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setIsFilterPanelOpen((prev) => !prev)}
+              className={cn(
+                "rounded-lg border px-4 py-2 text-sm font-medium transition",
+                isFilterPanelOpen
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
+              )}
+              aria-expanded={isFilterPanelOpen}
+            >
+              필터
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFormState(EMPTY_CAMPAIGN_FORM_STATE);
+                setFormError(null);
+                setFormOpen(true);
+              }}
+              disabled={!canCreateCampaign}
+              className={cn(
+                "rounded-lg px-4 py-2 text-sm font-semibold transition",
+                canCreateCampaign
+                  ? "bg-slate-900 text-white hover:bg-slate-800"
+                  : "cursor-not-allowed bg-slate-200 text-slate-500",
+              )}
+            >
+              신규 등록
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap gap-4">
-            <FilterControl
-              label="매체"
-              value={selectedChannel}
-              onChange={setSelectedChannel}
-              options={optionSets.channels}
-              disabled={!columnAccess.channel}
-              placeholder="전체 매체"
-            />
-            <FilterControl
-              label="대행사"
-              value={selectedAgency}
-              onChange={setSelectedAgency}
-              options={optionSets.agencies}
-              disabled={!columnAccess.agency}
-              placeholder="전체 대행사"
-            />
+        {isFilterPanelOpen ? (
+          <div className="space-y-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <FilterControl
+                label="매체/구분"
+                value={selectedChannel}
+                onChange={setSelectedChannel}
+                options={optionSets.channels}
+                disabled={!columnAccess.channel}
+                placeholder="전체 매체/구분"
+              />
+              <FilterControl
+                label="대행사"
+                value={selectedAgency}
+                onChange={setSelectedAgency}
+                options={optionSets.agencies}
+                disabled={!columnAccess.agency}
+                placeholder="전체 대행사"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleFilterReset}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+                disabled={isFilterPristine}
+              >
+                필터 초기화
+              </button>
+            </div>
           </div>
+        ) : null}
 
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedChannel(ALL_OPTION);
-              setSelectedAgency(ALL_OPTION);
-            }}
-            className="self-start rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
-            disabled={selectedChannel === ALL_OPTION && selectedAgency === ALL_OPTION}
-          >
-            필터 초기화
-          </button>
+        <div className="flex flex-col gap-1 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+          <span>기간: {monthRangeLabel}</span>
+          <span>총 {filteredItems.length.toLocaleString("ko-KR")}건</span>
         </div>
+      </div>
 
-        <div>
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            disabled={!columnAccess.schedule}
-            className={cn(
-              "rounded-lg px-4 py-2 text-sm font-semibold transition",
-              columnAccess.schedule
-                ? "bg-slate-900 text-white hover:bg-slate-800"
-                : "cursor-not-allowed bg-slate-200 text-slate-500",
-            )}
-          >
-            신규 등록
-          </button>
-        </div>
-
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         {renderView()}
       </div>
 
-      <ScheduleModal
-        open={isModalOpen}
+      <CampaignFormModal
+        open={formOpen}
+        mode="create"
+        title="신규 등록"
         onClose={() => {
-          setIsModalOpen(false);
+          setFormOpen(false);
           setFormError(null);
+          setFormState(EMPTY_CAMPAIGN_FORM_STATE);
         }}
-        onSubmit={handleSubmit}
+        onSubmit={handleFormSubmit}
+        formState={formState}
+        setFormState={setFormState}
+        columnAccess={formColumnAccess}
+        options={formOptionSets}
+        isSubmitting={isCreating}
         errorMessage={formError}
-        disabled={!columnAccess.schedule}
-        options={optionSets}
-        columnAccess={columnAccess}
-        isSubmitting={isSubmitting}
       />
     </section>
   );
@@ -616,18 +743,10 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
   }
 
   const timelineWidth = Math.max(timeline.totalDays * TIMELINE_DAY_WIDTH, 1);
-  const todayPosition =
-    timeline.todayOffset !== null ? (timeline.todayOffset + 0.5) * TIMELINE_DAY_WIDTH : null;
+  const todayColumnIndex = timeline.todayOffset;
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-col gap-1 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-        <span>
-          기간: {timeline.rangeLabel.start} ~ {timeline.rangeLabel.end}
-        </span>
-        <span>총 {rows.length.toLocaleString("ko-KR")}건</span>
-      </header>
-
       <div className="overflow-x-auto rounded-xl border border-slate-200">
         <div style={{ minWidth: TIMELINE_LEFT_WIDTH + timelineWidth }}>
           <div className="sticky top-0 z-20 border-b border-slate-200 bg-white">
@@ -636,7 +755,7 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                 className="sticky left-0 z-30 flex h-12 items-center border-r border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700"
                 style={{ width: TIMELINE_LEFT_WIDTH }}
               >
-                캠페인 / 매체
+                캠페인 / 매체/구분
               </div>
               <div className="relative h-12" style={{ width: timelineWidth }}>
                 <div className="flex h-full">
@@ -677,11 +796,14 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                     </div>
                   ))}
                 </div>
-                {todayPosition !== null ? (
-                  <span
+                {todayColumnIndex !== null ? (
+                  <div
                     aria-hidden
-                    className="pointer-events-none absolute inset-y-1 z-10 w-[3px] -translate-x-1/2 rounded-full bg-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.6)]"
-                    style={{ left: todayPosition }}
+                    className="pointer-events-none absolute inset-y-1 z-10 rounded-md bg-amber-100/80"
+                    style={{
+                      left: todayColumnIndex * TIMELINE_DAY_WIDTH,
+                      width: TIMELINE_DAY_WIDTH,
+                    }}
                   />
                 ) : null}
               </div>
@@ -737,11 +859,14 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                         />
                       ))}
               </div>
-                    {todayPosition !== null ? (
-                  <span
+                    {todayColumnIndex !== null ? (
+                      <div
                         aria-hidden
-                        className="pointer-events-none absolute inset-y-2 z-20 w-[3px] -translate-x-1/2 rounded-full bg-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.6)]"
-                        style={{ left: todayPosition }}
+                        className="pointer-events-none absolute inset-y-0 z-20 rounded-md bg-amber-100/60"
+                        style={{
+                          left: todayColumnIndex * TIMELINE_DAY_WIDTH,
+                          width: TIMELINE_DAY_WIDTH,
+                        }}
                       />
                     ) : null}
                     {canRenderBar ? (
@@ -785,11 +910,6 @@ const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 const ScheduleCalendar = ({ days, month, schedulesByDay, columnAccess }: ScheduleCalendarProps) => {
   return (
     <div className="space-y-4">
-      <header className="flex flex-col gap-1 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-        <span>{format(month, "yyyy년 M월")} 일정</span>
-        <span>총 {Object.values(schedulesByDay).flat().length.toLocaleString("ko-KR")}건</span>
-      </header>
-
       <div className="grid grid-cols-7 gap-2 text-center text-xs font-medium text-slate-500">
         {WEEKDAY_LABELS.map((label) => (
           <div key={label} className="py-2">
@@ -864,200 +984,6 @@ const ScheduleCalendar = ({ days, month, schedulesByDay, columnAccess }: Schedul
           );
         })}
       </div>
-    </div>
-  );
-};
-
-const ScheduleModal = ({
-  open,
-  onClose,
-  onSubmit,
-  errorMessage,
-  disabled,
-  options,
-  columnAccess,
-  isSubmitting,
-}: ScheduleModalProps) => {
-  if (!open) {
-    return null;
-  }
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6"
-    >
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-        <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">신규 일정 등록</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-            aria-label="모달 닫기"
-          >
-            ✕
-          </button>
-        </header>
-        <form onSubmit={onSubmit} className="space-y-5 px-6 py-6">
-          <p className="text-sm text-slate-500">
-            입력한 내용은 임시로 화면에만 반영됩니다. 서버 저장 로직은 차후 서버 액션으로 연결할 예정입니다.
-          </p>
-
-          {errorMessage ? (
-            <div className="rounded-lg border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
-              {errorMessage}
-            </div>
-          ) : null}
-
-          {disabled ? (
-            <div className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-              일정 등록 권한이 없어 폼이 비활성화되었습니다.
-            </div>
-          ) : null}
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              label="캠페인"
-              name="campaign"
-              placeholder="캠페인 이름"
-              disabled={disabled || !columnAccess.campaign || isSubmitting}
-              options={options.campaigns}
-              required
-            />
-            <Field
-              label="소재"
-              name="creative"
-              placeholder="소재 이름"
-              disabled={disabled || !columnAccess.creative || isSubmitting}
-              options={options.creatives}
-            />
-            <Field
-              label="매체"
-              name="channel"
-              placeholder="예: 디스플레이"
-              disabled={disabled || !columnAccess.channel || isSubmitting}
-              options={options.channels}
-              required
-            />
-            <Field
-              label="담당부서"
-              name="department"
-              placeholder="부서 선택"
-              disabled={disabled || !columnAccess.department || isSubmitting}
-              options={options.departments}
-            />
-            <Field
-              label="대행사"
-              name="agency"
-              placeholder="대행사 선택"
-              disabled={disabled || !columnAccess.agency || isSubmitting}
-              options={options.agencies}
-            />
-            <div className="space-y-2">
-              <label htmlFor="startDate" className="block text-sm font-medium text-slate-700">
-                시작일
-              </label>
-              <input
-                id="startDate"
-                name="startDate"
-                type="date"
-                required
-                disabled={disabled || !columnAccess.schedule || isSubmitting}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="endDate" className="block text-sm font-medium text-slate-700">
-                종료일
-              </label>
-              <input
-                id="endDate"
-                name="endDate"
-                type="date"
-                required
-                disabled={disabled || !columnAccess.schedule || isSubmitting}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
-              />
-            </div>
-          </div>
-
-          <footer className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className={cn(
-                "rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50",
-                isSubmitting && "cursor-not-allowed opacity-70",
-              )}
-            >
-              취소
-            </button>
-            <button
-              type="submit"
-              disabled={disabled || isSubmitting}
-              className={cn(
-                "rounded-lg px-4 py-2 text-sm font-semibold transition",
-                disabled || isSubmitting
-                  ? "cursor-not-allowed bg-slate-200 text-slate-500"
-                  : "bg-slate-900 text-white hover:bg-slate-800",
-              )}
-            >
-              {isSubmitting ? "등록 중..." : "추가"}
-            </button>
-          </footer>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-interface ScheduleModalProps {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  errorMessage: string | null;
-  disabled: boolean;
-  options: ScheduleOptions;
-  columnAccess: ScheduleColumnAccess;
-  isSubmitting: boolean;
-}
-
-interface FieldProps {
-  label: string;
-  name: string;
-  placeholder: string;
-  disabled?: boolean;
-  options: string[];
-  required?: boolean;
-}
-
-const Field = ({ label, name, placeholder, disabled, options, required }: FieldProps) => {
-  const datalistId = `${name}-options`;
-
-  return (
-    <div className="space-y-2">
-      <label htmlFor={name} className="block text-sm font-medium text-slate-700">
-        {label}
-        {required && !disabled ? <span className="ml-1 text-rose-500">*</span> : null}
-      </label>
-      <input
-        id={name}
-        name={name}
-        type="text"
-        placeholder={placeholder}
-        required={Boolean(required && !disabled)}
-        disabled={disabled}
-        list={datalistId}
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
-      />
-      <datalist id={datalistId}>
-        {options.map((option) => (
-          <option key={option} value={option} />
-        ))}
-      </datalist>
     </div>
   );
 };
