@@ -57,7 +57,8 @@ export function buildScheduleOptions(
   records: CampaignRecord[],
   columnAccess: ScheduleColumnAccess,
 ): ScheduleOptions {
-  const unique = (values: string[]) => Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  const unique = (values: string[]) =>
+    Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
 
   return {
     campaigns: columnAccess.campaign ? unique(records.map((record) => record.campaign)) : [],
@@ -93,7 +94,10 @@ export function mergeScheduleOptions(
   };
 }
 
-const SCHEDULE_CATEGORY_TO_OPTION_KEY: Record<Exclude<MasterDataCategory, "budgetAccount">, keyof ScheduleOptions> = {
+const SCHEDULE_CATEGORY_TO_OPTION_KEY: Record<
+  Exclude<MasterDataCategory, "budgetAccount">,
+  keyof ScheduleOptions
+> = {
   campaign: "campaigns",
   creative: "creatives",
   channel: "channels",
@@ -121,21 +125,19 @@ export function buildScheduleOptionsFromMasterData(
     agencies: [],
   };
 
-  (Object.entries(SCHEDULE_CATEGORY_TO_OPTION_KEY) as [MasterDataCategory, keyof ScheduleOptions][]).forEach(
-    ([category, optionKey]) => {
-      const columnKey = SCHEDULE_OPTION_TO_COLUMN_KEY[optionKey];
-      if (!columnAccess[columnKey]) {
-        base[optionKey] = [];
-        return;
-      }
+  (
+    Object.entries(SCHEDULE_CATEGORY_TO_OPTION_KEY) as [MasterDataCategory, keyof ScheduleOptions][]
+  ).forEach(([category, optionKey]) => {
+    const columnKey = SCHEDULE_OPTION_TO_COLUMN_KEY[optionKey];
+    if (!columnAccess[columnKey]) {
+      base[optionKey] = [];
+      return;
+    }
 
-      base[optionKey] = (masterData[category] ?? [])
-        .map((item) => item.value)
-        .sort((a, b) => a.localeCompare(b, "ko"));
-    },
-  );
+    base[optionKey] = (masterData[category] ?? [])
+      .map((item) => item.value)
+      .sort((a, b) => a.localeCompare(b, "ko"));
+  });
 
   return base;
 }
-
-

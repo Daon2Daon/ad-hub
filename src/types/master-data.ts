@@ -62,4 +62,3 @@ export const MASTER_DATA_CATEGORY_META: Record<MasterDataCategory, MasterDataCat
     placeholder: "새 대행사 이름",
   },
 };
-

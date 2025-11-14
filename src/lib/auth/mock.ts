@@ -34,4 +34,3 @@ export const MOCK_RESTRICTED_USER_PROFILE = createAccessProfile({
     agencies: ["A대행사"],
   },
 });
-

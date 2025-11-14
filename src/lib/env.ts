@@ -26,9 +26,7 @@ export function getServerEnv(): ServerEnv {
   const parsed = serverSchema.safeParse(process.env);
 
   if (!parsed.success) {
-    throw new Error(
-      `Invalid server environment variables: ${parsed.error.flatten().fieldErrors}`,
-    );
+    throw new Error(`Invalid server environment variables: ${parsed.error.flatten().fieldErrors}`);
   }
 
   cachedServerEnv = parsed.data;
@@ -45,11 +43,8 @@ export function getClientEnv(): ClientEnv {
   });
 
   if (!parsed.success) {
-    throw new Error(
-      `Invalid public environment variables: ${parsed.error.flatten().fieldErrors}`,
-    );
+    throw new Error(`Invalid public environment variables: ${parsed.error.flatten().fieldErrors}`);
   }
 
   return parsed.data;
 }
-

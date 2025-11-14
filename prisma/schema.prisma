@@ -33,6 +33,15 @@ enum MasterDataCategory {
   agency
 }
 
+enum ActivityLogType {
+  login_success
+  login_failure
+  data_create
+  data_update
+  data_delete
+  excel_upload
+}
+
 model User {
   id           String        @id @default(uuid())
   loginId      String        @unique
@@ -48,6 +57,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   campaigns     Campaign[]
+  activityLogs  ActivityLog[]
 }
 
 model UserAccessProfile {
@@ -131,4 +141,19 @@ model MasterDataItem {
 
   @@unique([category, value])
   @@index([category])
+}
+
+model ActivityLog {
+  id        String         @id @default(uuid())
+  userId     String?
+  loginId    String?
+  type       ActivityLogType
+  details    String         @db.Text
+  createdAt  DateTime       @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
 }

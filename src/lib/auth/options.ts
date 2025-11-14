@@ -7,6 +7,7 @@ import { z } from "zod";
 import { getServerEnv } from "@/lib/env";
 import { verifyPassword } from "@/lib/auth/password";
 import { createDefaultAccessProfile, toUserAccessProfile } from "@/lib/auth/profile";
+import { logLoginFailure, logLoginSuccess } from "@/lib/logs/logger";
 import { prisma } from "@/lib/prisma";
 import type { UserAccessProfile } from "@/types/auth";
 
@@ -71,6 +72,10 @@ export const authOptions: NextAuthOptions = {
         const parsed = credentialsSchema.safeParse(credentials);
 
         if (!parsed.success) {
+          const loginId = credentials?.loginId as string | undefined;
+          if (loginId) {
+            await logLoginFailure(loginId, "입력 형식 오류");
+          }
           throw new Error("INVALID_CREDENTIALS");
         }
 
@@ -81,18 +86,25 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user || !user.passwordHash) {
+          await logLoginFailure(loginId, "사용자 없음 또는 비밀번호 없음");
           throw new Error("INVALID_CREDENTIALS");
         }
 
         if (user.status !== "active") {
+          const reason = user.status === "pending" ? "승인 대기 중" : "계정 비활성화";
+          await logLoginFailure(loginId, reason);
           throw new Error(user.status === "pending" ? "ACCOUNT_PENDING" : "ACCOUNT_DISABLED");
         }
 
         const isValid = await verifyPassword(password, user.passwordHash);
 
         if (!isValid) {
+          await logLoginFailure(loginId, "비밀번호 불일치");
           throw new Error("INVALID_CREDENTIALS");
         }
+
+        // 로그인 성공 로그 기록
+        await logLoginSuccess(user.id, user.loginId);
 
         return {
           id: user.id,
@@ -148,4 +160,3 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
-

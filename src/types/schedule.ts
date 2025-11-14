@@ -11,9 +11,9 @@ export type ScheduleColumnKey =
 
 export interface ScheduleRecord
   extends Pick<
-      CampaignRecord,
-      "id" | "campaign" | "creative" | "channel" | "department" | "agency"
-    > {
+    CampaignRecord,
+    "id" | "campaign" | "creative" | "channel" | "department" | "agency"
+  > {
   startDate: string | null;
   endDate: string | null;
 }
@@ -35,6 +35,3 @@ export interface ScheduleOptionValues {
   department: string | null;
   agency: string | null;
 }
-
-
-

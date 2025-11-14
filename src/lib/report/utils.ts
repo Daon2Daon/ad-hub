@@ -46,7 +46,9 @@ export function buildReportOptions(
     channels: access.channel ? unique(records.map((record) => record.channel)) : [],
     departments: access.department ? unique(records.map((record) => record.department)) : [],
     agencies: access.agency ? unique(records.map((record) => record.agency)) : [],
-    budgetAccounts: access.budgetAccount ? unique(records.map((record) => record.budgetAccount)) : [],
+    budgetAccounts: access.budgetAccount
+      ? unique(records.map((record) => record.budgetAccount))
+      : [],
   };
 }
 
@@ -54,14 +56,10 @@ export function buildReportSummary(
   records: CampaignRecord[],
   access: ReportColumnAccess,
 ): ReportSummary {
-  const totalSpend = access.spend
-    ? records.reduce((acc, record) => acc + record.spend, 0)
-    : null;
+  const totalSpend = access.spend ? records.reduce((acc, record) => acc + record.spend, 0) : null;
 
   return {
     totalCount: records.length,
     totalSpend,
   };
 }
-
-

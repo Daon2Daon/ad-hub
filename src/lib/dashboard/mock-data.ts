@@ -4,7 +4,9 @@ import type { CampaignRecord } from "@/types/dashboard";
 
 const today = new Date();
 
-function buildRecord(partial: Partial<CampaignRecord> & Pick<CampaignRecord, "id">): CampaignRecord {
+function buildRecord(
+  partial: Partial<CampaignRecord> & Pick<CampaignRecord, "id">,
+): CampaignRecord {
   const defaultStart = subMonths(today, 2);
   const defaultEnd = addDays(today, 30);
 
@@ -74,4 +76,3 @@ export const DASHBOARD_SAMPLE_DATA: CampaignRecord[] = [
     agency: "C대행사",
   }),
 ];
-

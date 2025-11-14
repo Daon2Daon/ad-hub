@@ -32,8 +32,8 @@ const Page = async () => {
       <header className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold text-slate-900">마스터 데이터 관리</h1>
         <p className="text-sm text-slate-600">
-          캠페인 등록 시 선택할 수 있는 기초 데이터를 사전에 등록하고 관리합니다. 변경 사항은 매체 스케줄 및 광고집행
-          관리 화면에도 즉시 반영됩니다.
+          캠페인 등록 시 선택할 수 있는 기초 데이터를 사전에 등록하고 관리합니다. 변경 사항은 매체
+          스케줄 및 광고집행 관리 화면에도 즉시 반영됩니다.
         </p>
       </header>
 
@@ -43,5 +43,3 @@ const Page = async () => {
 };
 
 export default Page;
-
-

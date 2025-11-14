@@ -29,4 +29,3 @@ declare module "next-auth/jwt" {
     accessProfile?: UserAccessProfile;
   }
 }
-

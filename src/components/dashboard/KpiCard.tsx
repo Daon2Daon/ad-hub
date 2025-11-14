@@ -11,4 +11,3 @@ export const KpiCard = ({ title, value, description }: KpiCardProps) => (
     {description ? <p className="mt-3 text-sm text-slate-500">{description}</p> : null}
   </section>
 );
-

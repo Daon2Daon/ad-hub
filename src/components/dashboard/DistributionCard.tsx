@@ -32,14 +32,16 @@ export const DistributionCard = ({
 
   if (slices.length === 0 || total === 0) {
     return (
-  <section className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-    <header className="mb-4 flex items-center justify-between">
+      <section className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <header className="mb-4 flex items-center justify-between">
           <h2 id={cardTitleId} className="text-lg font-semibold text-slate-900">
             {title}
           </h2>
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-400">도넛 차트</span>
-    </header>
-      <p className="text-sm text-slate-500">{emptyMessage}</p>
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            도넛 차트
+          </span>
+        </header>
+        <p className="text-sm text-slate-500">{emptyMessage}</p>
       </section>
     );
   }
@@ -80,14 +82,7 @@ export const DistributionCard = ({
           aria-describedby={descriptionId}
         >
           <svg width="192" height="192" viewBox="0 0 96 96" className="-rotate-90">
-            <circle
-              cx="48"
-              cy="48"
-              r="36"
-              fill="transparent"
-              stroke="#e2e8f0"
-              strokeWidth="12"
-            />
+            <circle cx="48" cy="48" r="36" fill="transparent" stroke="#e2e8f0" strokeWidth="12" />
             {formattedSlices.map((slice) => (
               <circle
                 key={slice.label}
@@ -119,18 +114,17 @@ export const DistributionCard = ({
                 className="block h-3 w-3 rounded-full"
                 style={{ backgroundColor: slice.color }}
               />
-            <span className="text-sm text-slate-600">{slice.label}</span>
-              <span className="min-w-[6.5rem] text-sm font-semibold text-slate-900 tabular-nums text-right">
+              <span className="text-sm text-slate-600">{slice.label}</span>
+              <span className="min-w-[6.5rem] text-right text-sm font-semibold tabular-nums text-slate-900">
                 {currencyFormatter.format(slice.value)}
               </span>
-              <span className="min-w-[3.5rem] text-xs font-medium text-slate-400 tabular-nums text-right">
+              <span className="min-w-[3.5rem] text-right text-xs font-medium tabular-nums text-slate-400">
                 {percentageFormatter.format(slice.ratio)}
-            </span>
-          </li>
-        ))}
-      </ol>
+              </span>
+            </li>
+          ))}
+        </ol>
       </div>
-  </section>
-);
+    </section>
+  );
 };
-

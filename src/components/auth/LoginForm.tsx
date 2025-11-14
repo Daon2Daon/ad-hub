@@ -30,14 +30,11 @@ export const LoginForm = () => {
     setErrorMessage(null);
     setSubmitting(true);
 
-    const result = await signIn(
-      "credentials",
-      {
-        loginId,
-        password,
-        redirect: false,
-      },
-    );
+    const result = await signIn("credentials", {
+      loginId,
+      password,
+      redirect: false,
+    });
 
     setSubmitting(false);
 
@@ -115,11 +112,13 @@ export const LoginForm = () => {
 
       <footer className="text-center text-sm text-slate-500">
         아직 계정이 없으신가요?{" "}
-        <Link href="/signup" className="font-medium text-slate-900 underline-offset-4 hover:underline">
+        <Link
+          href="/signup"
+          className="font-medium text-slate-900 underline-offset-4 hover:underline"
+        >
           가입 신청
         </Link>
       </footer>
     </section>
   );
 };
-

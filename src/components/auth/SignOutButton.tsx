@@ -43,5 +43,3 @@ export const SignOutButton = ({ className }: SignOutButtonProps) => {
     </button>
   );
 };
-
-

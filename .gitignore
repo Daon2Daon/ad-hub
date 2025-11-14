@@ -11,7 +11,12 @@ dist
 pnpm-lock.yaml
 yarn.lock
 package-lock.json
+
 /tmp
 
-
 /generated/prisma
+
+SETUP_GUIDE.md
+SYNOLOGY_NAS_SETUP.md
+LOCAL_SETUP_CHECKLIST.md
+docker-compose.yml

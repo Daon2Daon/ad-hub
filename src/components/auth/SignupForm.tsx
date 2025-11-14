@@ -17,9 +17,7 @@ export const SignupForm = () => {
     },
     onError: ({ error }) => {
       const message =
-        typeof error.serverError === "string"
-          ? error.serverError
-          : "가입 중 오류가 발생했습니다.";
+        typeof error.serverError === "string" ? error.serverError : "가입 중 오류가 발생했습니다.";
       setErrorMessage(message);
     },
   });
@@ -116,11 +114,13 @@ export const SignupForm = () => {
 
       <footer className="text-center text-sm text-slate-500">
         이미 계정이 있으신가요?{" "}
-        <Link href="/login" className="font-medium text-slate-900 underline-offset-4 hover:underline">
+        <Link
+          href="/login"
+          className="font-medium text-slate-900 underline-offset-4 hover:underline"
+        >
           로그인
         </Link>
       </footer>
     </section>
   );
 };
-

@@ -3,32 +3,37 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { MasterDataCategory, MasterDataItem } from "@/types/master-data";
 
-export async function fetchMasterDataItems(): Promise<Record<MasterDataCategory, MasterDataItem[]>> {
+export async function fetchMasterDataItems(): Promise<
+  Record<MasterDataCategory, MasterDataItem[]>
+> {
   const records = await prisma.masterDataItem.findMany({
     orderBy: [{ category: "asc" }, { value: "asc" }],
   });
 
-  return records.reduce<Record<MasterDataCategory, MasterDataItem[]>>((acc, record) => {
-    const category = record.category as MasterDataCategory;
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push({
-      id: record.id,
-      category,
-      value: record.value,
-      createdAt: record.createdAt.toISOString(),
-      updatedAt: record.updatedAt.toISOString(),
-    });
-    return acc;
-  }, {
-    campaign: [],
-    creative: [],
-    channel: [],
-    budgetAccount: [],
-    department: [],
-    agency: [],
-  });
+  return records.reduce<Record<MasterDataCategory, MasterDataItem[]>>(
+    (acc, record) => {
+      const category = record.category as MasterDataCategory;
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push({
+        id: record.id,
+        category,
+        value: record.value,
+        createdAt: record.createdAt.toISOString(),
+        updatedAt: record.updatedAt.toISOString(),
+      });
+      return acc;
+    },
+    {
+      campaign: [],
+      creative: [],
+      channel: [],
+      budgetAccount: [],
+      department: [],
+      agency: [],
+    },
+  );
 }
 
 export async function createMasterDataItem(params: {
@@ -96,4 +101,3 @@ export async function ensureMasterDataValueExists(
     });
   }
 }
-

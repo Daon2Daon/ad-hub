@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { actionClient } from "@/lib/safe-action";
@@ -25,29 +26,12 @@ const signUpSchema = z.object({
     .optional(),
 });
 
-export const signUpAction = actionClient
-  .schema(signUpSchema)
-  .action(async ({ parsedInput }) => {
-    const { loginId, email, password, name } = parsedInput;
+export const signUpAction = actionClient.schema(signUpSchema).action(async ({ parsedInput }) => {
+  const { loginId, email, password, name } = parsedInput;
 
-    const existing = await prisma.user.findUnique({
-      where: { loginId },
-    });
-
-    if (existing) {
-      throw new Error("이미 사용 중인 아이디입니다.");
-    }
-
-    if (email) {
-      const existingEmail = await prisma.user.findUnique({
-        where: { email },
-      });
-
-      if (existingEmail) {
-        throw new Error("이미 가입된 이메일입니다.");
-      }
-    }
-
+  // 트랜잭션을 사용하여 race condition 방지
+  // DB의 unique 제약조건과 함께 사용하여 안전성 확보
+  try {
     const hashed = await hashPassword(password);
     const defaultProfile = createDefaultAccessProfile("user");
 
@@ -77,5 +61,19 @@ export const signUpAction = actionClient
       userId: user.id,
       status: user.status,
     };
-  });
-
+  } catch (error) {
+    // Prisma unique constraint violation 처리
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        const target = error.meta?.target as string[] | undefined;
+        if (target?.includes("loginId")) {
+          throw new Error("이미 사용 중인 아이디입니다.");
+        }
+        if (target?.includes("email")) {
+          throw new Error("이미 가입된 이메일입니다.");
+        }
+      }
+    }
+    throw error;
+  }
+});

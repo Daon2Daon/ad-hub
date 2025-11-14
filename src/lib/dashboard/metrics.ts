@@ -15,7 +15,10 @@ export interface DashboardOptions {
   customRange?: DateRange;
 }
 
-export function getDefaultRanges(baseDate: Date = new Date()): { month: DateRange; year: DateRange } {
+export function getDefaultRanges(baseDate: Date = new Date()): {
+  month: DateRange;
+  year: DateRange;
+} {
   return {
     month: {
       start: startOfMonth(baseDate),
@@ -38,10 +41,7 @@ function overlaps(range: DateRange, start: Date, end: Date) {
 
 export function calculateKpis(
   periodRecords: CampaignRecord[],
-  {
-    yearRecords,
-    profile,
-  }: { yearRecords: CampaignRecord[]; profile: UserAccessProfile },
+  { yearRecords, profile }: { yearRecords: CampaignRecord[]; profile: UserAccessProfile },
 ): KpiSummary {
   const activeCampaigns = periodRecords.length;
 
@@ -62,7 +62,10 @@ export function calculateKpis(
   };
 }
 
-function buildDistribution(records: CampaignRecord[], key: "creative" | "agency"): DistributionSlice[] {
+function buildDistribution(
+  records: CampaignRecord[],
+  key: "creative" | "agency",
+): DistributionSlice[] {
   const map = new Map<string, number>();
 
   records.forEach((record) => {
@@ -115,4 +118,3 @@ export function generateDashboardData(
     byAgency,
   };
 }
-

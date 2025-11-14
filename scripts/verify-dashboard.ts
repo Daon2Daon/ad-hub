@@ -11,7 +11,10 @@ function assert(condition: boolean, message: string) {
 function runAdminScenario() {
   const result = generateDashboardData(DASHBOARD_SAMPLE_DATA, MOCK_ADMIN_PROFILE);
 
-  assert(result.kpis.activeCampaigns === DASHBOARD_SAMPLE_DATA.length, "Admin should see all campaigns");
+  assert(
+    result.kpis.activeCampaigns === DASHBOARD_SAMPLE_DATA.length,
+    "Admin should see all campaigns",
+  );
   assert(
     result.byCreative.length > 0 && result.byAgency.length > 0,
     "Admin should receive distributions with spend data",
@@ -24,8 +27,14 @@ function runRestrictedScenario() {
   const result = generateDashboardData(DASHBOARD_SAMPLE_DATA, MOCK_RESTRICTED_USER_PROFILE);
 
   assert(result.kpis.activeCampaigns === 2, "Restricted user should only see scoped campaigns");
-  assert(result.kpis.periodSpend === null, "Restricted user without spend permission should not see spend");
-  assert(result.byCreative.length === 0 && result.byAgency.length === 0, "Spend-restricted user should not receive distributions");
+  assert(
+    result.kpis.periodSpend === null,
+    "Restricted user without spend permission should not see spend",
+  );
+  assert(
+    result.byCreative.length === 0 && result.byAgency.length === 0,
+    "Spend-restricted user should not receive distributions",
+  );
 
   return result;
 }
@@ -40,4 +49,3 @@ function main() {
 }
 
 main();
-

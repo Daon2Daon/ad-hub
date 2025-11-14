@@ -14,4 +14,3 @@ export function getSignInErrorMessage(code?: string | null) {
 export function getSignUpSuccessMessage() {
   return "가입 신청이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.";
 }
-

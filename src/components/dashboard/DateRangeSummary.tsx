@@ -18,4 +18,3 @@ export const DateRangeSummary = ({ label, range }: DateRangeSummaryProps) => (
     </span>
   </div>
 );
-

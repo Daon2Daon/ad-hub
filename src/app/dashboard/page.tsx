@@ -42,8 +42,8 @@ const Page = async () => {
 
       {records.length === 0 ? (
         <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-          등록된 캠페인 데이터가 없습니다. 데이터를 업로드하거나 시드 스크립트를 실행해 초기 데이터를
-          생성하세요.
+          등록된 캠페인 데이터가 없습니다. 데이터를 업로드하거나 시드 스크립트를 실행해 초기
+          데이터를 생성하세요.
         </section>
       ) : (
         <>
@@ -81,4 +81,3 @@ const Page = async () => {
 };
 
 export default Page;
-

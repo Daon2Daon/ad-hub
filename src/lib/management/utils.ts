@@ -44,13 +44,16 @@ export function buildManagementOptions(
   records: CampaignRecord[],
   columnAccess: ManagementColumnAccess,
 ): ManagementOptions {
-  const unique = (values: string[]) => Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  const unique = (values: string[]) =>
+    Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
 
   return {
     campaigns: columnAccess.campaign ? unique(records.map((record) => record.campaign)) : [],
     creatives: columnAccess.creative ? unique(records.map((record) => record.creative)) : [],
     channels: columnAccess.channel ? unique(records.map((record) => record.channel)) : [],
-    budgetAccounts: columnAccess.budgetAccount ? unique(records.map((record) => record.budgetAccount)) : [],
+    budgetAccounts: columnAccess.budgetAccount
+      ? unique(records.map((record) => record.budgetAccount))
+      : [],
     departments: columnAccess.department ? unique(records.map((record) => record.department)) : [],
     agencies: columnAccess.agency ? unique(records.map((record) => record.agency)) : [],
   };
@@ -91,7 +94,10 @@ const MANAGEMENT_CATEGORY_TO_OPTION_KEY: Record<MasterDataCategory, keyof Manage
   agency: "agencies",
 };
 
-const MANAGEMENT_OPTION_TO_COLUMN_KEY: Record<keyof ManagementOptions, keyof ManagementColumnAccess> = {
+const MANAGEMENT_OPTION_TO_COLUMN_KEY: Record<
+  keyof ManagementOptions,
+  keyof ManagementColumnAccess
+> = {
   campaigns: "campaign",
   creatives: "creative",
   channels: "channel",
@@ -113,17 +119,33 @@ export function buildManagementOptionsFromMasterData(
     agencies: [],
   };
 
-  (Object.entries(masterData) as [MasterDataCategory, MasterDataItem[]][]).forEach(([category, items]) => {
-    const optionKey = MANAGEMENT_CATEGORY_TO_OPTION_KEY[category];
-    const columnKey = MANAGEMENT_OPTION_TO_COLUMN_KEY[optionKey];
+  (Object.entries(masterData) as [MasterDataCategory, MasterDataItem[]][]).forEach(
+    ([category, items]) => {
+      const optionKey = MANAGEMENT_CATEGORY_TO_OPTION_KEY[category];
+      const columnKey = MANAGEMENT_OPTION_TO_COLUMN_KEY[optionKey];
 
-    if (!columnAccess[columnKey]) {
-      result[optionKey] = [];
-      return;
-    }
+      if (!columnAccess[columnKey]) {
+        result[optionKey] = [];
+        return;
+      }
 
-    result[optionKey] = items.map((item) => item.value).sort((a, b) => a.localeCompare(b, "ko"));
-  });
+      result[optionKey] = items.map((item) => item.value).sort((a, b) => a.localeCompare(b, "ko"));
+    },
+  );
 
   return result;
+}
+
+export function buildOptionValues(
+  record: CampaignRecord,
+  access: ManagementColumnAccess,
+): ManagementOptionValues {
+  return {
+    campaign: access.campaign ? record.campaign : null,
+    creative: access.creative ? record.creative : null,
+    channel: access.channel ? record.channel : null,
+    budgetAccount: access.budgetAccount ? record.budgetAccount : null,
+    department: access.department ? record.department : null,
+    agency: access.agency ? record.agency : null,
+  };
 }

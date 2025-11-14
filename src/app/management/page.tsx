@@ -26,7 +26,10 @@ const Page = async () => {
   const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
   const columnAccess = buildManagementColumnAccess(profile);
 
-  const [campaigns, masterData] = await Promise.all([fetchCampaignRecords(), fetchMasterDataItems()]);
+  const [campaigns, masterData] = await Promise.all([
+    fetchCampaignRecords(),
+    fetchMasterDataItems(),
+  ]);
   const scopedRecords = filterRowsByScope(campaigns, profile);
 
   const rows = scopedRecords.map((record) => toManagementRow(record, columnAccess));
@@ -43,8 +46,8 @@ const Page = async () => {
       <header className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold text-slate-900">광고집행 관리</h1>
         <p className="text-sm text-slate-600">
-          캠페인 데이터를 조회하고 신규 등록, 수정, 삭제, 일괄 작업을 수행할 수 있습니다. 컬럼과 데이터는
-          사용자 권한에 따라 제한될 수 있습니다.
+          캠페인 데이터를 조회하고 신규 등록, 수정, 삭제, 일괄 작업을 수행할 수 있습니다. 컬럼과
+          데이터는 사용자 권한에 따라 제한될 수 있습니다.
         </p>
       </header>
 

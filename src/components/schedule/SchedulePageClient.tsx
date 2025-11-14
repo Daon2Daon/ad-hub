@@ -129,7 +129,11 @@ export const SchedulePageClient = ({
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      if (columnAccess.channel && selectedChannel !== ALL_OPTION && item.channel !== selectedChannel) {
+      if (
+        columnAccess.channel &&
+        selectedChannel !== ALL_OPTION &&
+        item.channel !== selectedChannel
+      ) {
         return false;
       }
       if (columnAccess.agency && selectedAgency !== ALL_OPTION && item.agency !== selectedAgency) {
@@ -139,7 +143,10 @@ export const SchedulePageClient = ({
     });
   }, [items, columnAccess.channel, columnAccess.agency, selectedChannel, selectedAgency]);
 
-  const ganttData = useMemo(() => buildGanttData(filteredItems, currentMonth), [filteredItems, currentMonth]);
+  const ganttData = useMemo(
+    () => buildGanttData(filteredItems, currentMonth),
+    [filteredItems, currentMonth],
+  );
   const calendarData = useMemo(
     () => buildCalendarData(filteredItems, currentMonth),
     [filteredItems, currentMonth],
@@ -258,8 +265,7 @@ export const SchedulePageClient = ({
       return;
     }
 
-    const spendValue =
-      formColumnAccess.spend && spendInput !== "" ? Number(spendInput) : undefined;
+    const spendValue = formColumnAccess.spend && spendInput !== "" ? Number(spendInput) : undefined;
 
     if (spendValue !== undefined && Number.isNaN(spendValue)) {
       setFormError("광고비는 숫자로 입력해주세요.");
@@ -465,7 +471,7 @@ export const SchedulePageClient = ({
         columnAccess={formColumnAccess}
         options={formOptionSets}
         isSubmitting={isCreating}
-        errorMessage={formError}
+        errorMessage={formError ?? undefined}
       />
     </section>
   );
@@ -498,11 +504,11 @@ interface TimelineContext {
 }
 
 interface GanttRow {
-    id: string;
-    label: string;
-    channel: string;
-    department: string;
-    agency: string;
+  id: string;
+  label: string;
+  channel: string;
+  department: string;
+  agency: string;
   startDate: Date | null;
   endDate: Date | null;
   barStart: number | null;
@@ -531,7 +537,9 @@ function buildTimelineContext(month: Date): TimelineContext {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
 
-  const descriptors = eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) => toDayDescriptor(day));
+  const descriptors = eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) =>
+    toDayDescriptor(day),
+  );
   const todayDescriptor = toDayDescriptor(new Date());
   const todayKey = todayDescriptor.key;
 
@@ -592,7 +600,7 @@ function buildTimelineContext(month: Date): TimelineContext {
     totalDays: days.length,
     days,
     months,
-    todayOffset: todayOffset >= 0 ? todayOffset : null,
+    todayOffset: todayOffset !== null && todayOffset >= 0 ? todayOffset : null,
     rangeLabel,
     dayIndexMap,
   };
@@ -644,7 +652,7 @@ function buildGanttData(records: ScheduleRecord[], month: Date): GanttData {
       if (timeA !== timeB) {
         return timeA - timeB;
       }
-      return a.startDate.localeCompare(b.startDate);
+      return (a.startDate || "").localeCompare(b.startDate || "");
     })
     .map(({ record, startDate, endDate, startDescriptor, endDescriptor }) => {
       let barStart: number | null = null;
@@ -669,8 +677,8 @@ function buildGanttData(records: ScheduleRecord[], month: Date): GanttData {
         channel: record.channel,
         department: record.department,
         agency: record.agency,
-        start: startDate,
-        end: endDate,
+        startDate: record.startDate ? new Date(record.startDate) : null,
+        endDate: record.endDate ? new Date(record.endDate) : null,
         barStart,
         barLength,
       };
@@ -817,10 +825,10 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
               const displayChannel = columnAccess.channel ? row.channel : "권한 없음";
               const displayDepartment = columnAccess.department ? row.department : "권한 없음";
               const displayAgency = columnAccess.agency ? row.agency : "권한 없음";
-          const periodLabel =
+              const periodLabel =
                 columnAccess.schedule && row.startDate && row.endDate
                   ? `${format(row.startDate, "yyyy.MM.dd")} ~ ${format(row.endDate, "yyyy.MM.dd")}`
-              : "권한 없음";
+                  : "권한 없음";
 
               const canRenderBar =
                 columnAccess.schedule &&
@@ -830,7 +838,7 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
 
               const rowBackgroundClass = rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50";
 
-          return (
+              return (
                 <div key={row.id} className="flex border-b border-slate-200">
                   <div
                     className={cn(
@@ -841,11 +849,14 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                   >
                     <p className="font-semibold text-slate-900">{displayLabel}</p>
                     <p className="text-xs text-slate-500">
-                    {displayChannel} · {displayDepartment} · {displayAgency}
+                      {displayChannel} · {displayDepartment} · {displayAgency}
                     </p>
                     <p className="mt-1 text-xs text-slate-400">{periodLabel}</p>
-                </div>
-                  <div className={cn("relative", rowBackgroundClass)} style={{ width: timelineWidth }}>
+                  </div>
+                  <div
+                    className={cn("relative", rowBackgroundClass)}
+                    style={{ width: timelineWidth }}
+                  >
                     <div className="flex h-full" aria-hidden>
                       {timeline.days.map((day, index) => (
                         <div
@@ -858,7 +869,7 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                           style={{ width: TIMELINE_DAY_WIDTH }}
                         />
                       ))}
-              </div>
+                    </div>
                     {todayColumnIndex !== null ? (
                       <div
                         aria-hidden
@@ -875,9 +886,12 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                           "absolute top-2 flex h-9 items-center justify-center rounded-md text-xs font-semibold text-white shadow-sm transition",
                           variant.barClass,
                         )}
-                    style={{
+                        style={{
                           left: row.barStart! * TIMELINE_DAY_WIDTH + 2,
-                          width: Math.max(row.barLength! * TIMELINE_DAY_WIDTH - 4, TIMELINE_DAY_WIDTH / 2),
+                          width: Math.max(
+                            row.barLength! * TIMELINE_DAY_WIDTH - 4,
+                            TIMELINE_DAY_WIDTH / 2,
+                          ),
                         }}
                         title={`${displayLabel} | ${periodLabel}`}
                       >
@@ -885,15 +899,15 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                           {displayLabel} 일정 {periodLabel}
                         </span>
                       </div>
-                ) : (
+                    ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
                         일정 정보 없음
                       </div>
-                )}
-              </div>
+                    )}
+                  </div>
                 </div>
-          );
-        })}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -997,7 +1011,14 @@ interface FilterControlProps {
   placeholder: string;
 }
 
-const FilterControl = ({ label, value, onChange, options, disabled, placeholder }: FilterControlProps) => {
+const FilterControl = ({
+  label,
+  value,
+  onChange,
+  options,
+  disabled,
+  placeholder,
+}: FilterControlProps) => {
   return (
     <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
       <span className="text-slate-600">{label}</span>
@@ -1017,4 +1038,3 @@ const FilterControl = ({ label, value, onChange, options, disabled, placeholder 
     </label>
   );
 };
-

@@ -49,6 +49,7 @@ export interface CampaignFormModalProps {
   options: ManagementOptions;
   isSubmitting: boolean;
   errorMessage?: string;
+  fieldErrors?: Partial<Record<keyof CampaignFormState, string>>;
 }
 
 export const CampaignFormModal = ({
@@ -63,6 +64,7 @@ export const CampaignFormModal = ({
   options,
   isSubmitting,
   errorMessage,
+  fieldErrors = {},
 }: CampaignFormModalProps) => {
   if (!open) {
     return null;
@@ -88,12 +90,6 @@ export const CampaignFormModal = ({
         </header>
 
         <form onSubmit={onSubmit} className="space-y-5 px-6 py-6">
-          {errorMessage ? (
-            <div className="rounded-lg border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
-              {errorMessage}
-            </div>
-          ) : null}
-
           <div className="grid gap-4 sm:grid-cols-2">
             {columnAccess.campaign ? (
               <Field
@@ -104,6 +100,7 @@ export const CampaignFormModal = ({
                 onChange={handleChange("campaign")}
                 disabled={isSubmitting}
                 options={options.campaigns}
+                error={fieldErrors.campaign}
               />
             ) : null}
 
@@ -117,6 +114,7 @@ export const CampaignFormModal = ({
                 disabled={isSubmitting}
                 options={options.creatives}
                 required
+                error={fieldErrors.creative}
               />
             ) : null}
 
@@ -130,6 +128,7 @@ export const CampaignFormModal = ({
                 disabled={isSubmitting}
                 required
                 options={options.channels}
+                error={fieldErrors.channel}
               />
             ) : null}
 
@@ -147,8 +146,16 @@ export const CampaignFormModal = ({
                   value={formState.spend}
                   onChange={(event) => handleChange("spend")(event.target.value)}
                   disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className={cn(
+                    "w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100",
+                    fieldErrors.spend
+                      ? "border-rose-300 focus:border-rose-400 focus:ring-rose-200"
+                      : "border-slate-200 focus:border-slate-400 focus:ring-slate-200",
+                  )}
                 />
+                {fieldErrors.spend ? (
+                  <p className="text-xs text-rose-600">{fieldErrors.spend}</p>
+                ) : null}
               </div>
             ) : null}
 
@@ -165,8 +172,16 @@ export const CampaignFormModal = ({
                   value={formState.startDate}
                   onChange={(event) => handleChange("startDate")(event.target.value)}
                   disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className={cn(
+                    "w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100",
+                    fieldErrors.startDate
+                      ? "border-rose-300 focus:border-rose-400 focus:ring-rose-200"
+                      : "border-slate-200 focus:border-slate-400 focus:ring-slate-200",
+                  )}
                 />
+                {fieldErrors.startDate ? (
+                  <p className="text-xs text-rose-600">{fieldErrors.startDate}</p>
+                ) : null}
               </div>
             ) : null}
 
@@ -183,8 +198,16 @@ export const CampaignFormModal = ({
                   value={formState.endDate}
                   onChange={(event) => handleChange("endDate")(event.target.value)}
                   disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className={cn(
+                    "w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100",
+                    fieldErrors.endDate
+                      ? "border-rose-300 focus:border-rose-400 focus:ring-rose-200"
+                      : "border-slate-200 focus:border-slate-400 focus:ring-slate-200",
+                  )}
                 />
+                {fieldErrors.endDate ? (
+                  <p className="text-xs text-rose-600">{fieldErrors.endDate}</p>
+                ) : null}
               </div>
             ) : null}
 
@@ -198,6 +221,7 @@ export const CampaignFormModal = ({
                 disabled={isSubmitting}
                 required
                 options={options.departments}
+                error={fieldErrors.department}
               />
             ) : null}
 
@@ -211,6 +235,7 @@ export const CampaignFormModal = ({
                 disabled={isSubmitting}
                 required
                 options={options.agencies}
+                error={fieldErrors.agency}
               />
             ) : null}
 
@@ -225,6 +250,7 @@ export const CampaignFormModal = ({
                   disabled={isSubmitting}
                   required
                   options={options.budgetAccounts}
+                  error={fieldErrors.budgetAccount}
                 />
               </div>
             ) : null}
@@ -247,7 +273,9 @@ export const CampaignFormModal = ({
               disabled={isSubmitting}
               className={cn(
                 "rounded-lg px-4 py-2 text-sm font-semibold transition",
-                isSubmitting ? "cursor-not-allowed bg-slate-200 text-slate-500" : "bg-slate-900 text-white hover:bg-slate-800",
+                isSubmitting
+                  ? "cursor-not-allowed bg-slate-200 text-slate-500"
+                  : "bg-slate-900 text-white hover:bg-slate-800",
               )}
             >
               {isSubmitting ? "처리 중..." : mode === "create" ? "등록" : "저장"}
@@ -268,9 +296,20 @@ interface FieldProps {
   disabled?: boolean;
   options: string[];
   required?: boolean;
+  error?: string;
 }
 
-const Field = ({ label, name, placeholder, value, onChange, disabled, options, required }: FieldProps) => {
+const Field = ({
+  label,
+  name,
+  placeholder,
+  value,
+  onChange,
+  disabled,
+  options,
+  required,
+  error,
+}: FieldProps) => {
   const datalistId = `${name}-options`;
 
   return (
@@ -289,15 +328,19 @@ const Field = ({ label, name, placeholder, value, onChange, disabled, options, r
         required={Boolean(required && !disabled)}
         disabled={disabled}
         list={datalistId}
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
+        className={cn(
+          "w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100",
+          error
+            ? "border-rose-300 focus:border-rose-400 focus:ring-rose-200"
+            : "border-slate-200 focus:border-slate-400 focus:ring-slate-200",
+        )}
       />
       <datalist id={datalistId}>
         {options.map((option) => (
           <option key={option} value={option} />
         ))}
       </datalist>
+      {error ? <p className="text-xs text-rose-600">{error}</p> : null}
     </div>
   );
 };
-
-

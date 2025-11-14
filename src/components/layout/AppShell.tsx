@@ -63,12 +63,10 @@ export const AppShell = ({ navItems, children, user }: AppShellProps) => {
         </div>
       </aside>
 
-      <div className="flex min-h-screen flex-1 min-w-0 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex h-16 min-w-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-6 lg:px-8">
           <div>
-            <p className="text-sm font-semibold text-slate-900">
-              {activeItem?.label ?? "Ad Hub"}
-            </p>
+            <p className="text-sm font-semibold text-slate-900">{activeItem?.label ?? "Ad Hub"}</p>
             <p className="text-xs text-slate-500">
               {user.name ?? user.loginId} · {ROLE_LABEL[user.role]}
             </p>
@@ -94,7 +92,7 @@ export const AppShell = ({ navItems, children, user }: AppShellProps) => {
           })}
         </nav>
 
-        <main className="flex-1 min-w-0 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">{children}</main>
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">{children}</main>
       </div>
     </div>
   );
@@ -108,5 +106,3 @@ const COLUMN_LABELS: Record<keyof ScheduleColumnAccess, string> = {
   department: "담당부서",
   agency: "대행사",
 };
-
-

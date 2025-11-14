@@ -40,14 +40,15 @@ const Page = async () => {
       <header className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold text-slate-900">리포트</h1>
         <p className="text-sm text-slate-600">
-          기간, 캠페인, 매체/구분 등 다양한 조건으로 데이터를 필터링하고 결과를 CSV로 내려받을 수 있습니다. 컬럼과
-          데이터는 사용자 권한에 따라 제한될 수 있습니다.
+          기간, 캠페인, 매체/구분 등 다양한 조건으로 데이터를 필터링하고 결과를 CSV로 내려받을 수
+          있습니다. 컬럼과 데이터는 사용자 권한에 따라 제한될 수 있습니다.
         </p>
       </header>
 
       {!hasVisibleColumns ? (
         <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-          열람 가능한 컬럼 권한이 없어 리포트 데이터를 확인할 수 없습니다. 관리자에게 컬럼 접근 권한을 요청해주세요.
+          열람 가능한 컬럼 권한이 없어 리포트 데이터를 확인할 수 없습니다. 관리자에게 컬럼 접근
+          권한을 요청해주세요.
         </section>
       ) : scopedRecords.length === 0 ? (
         <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
@@ -66,5 +67,3 @@ const Page = async () => {
 };
 
 export default Page;
-
-

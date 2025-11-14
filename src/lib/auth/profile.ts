@@ -54,4 +54,3 @@ export function toUserAccessProfile(user: UserWithProfile): UserAccessProfile {
     scope,
   });
 }
-

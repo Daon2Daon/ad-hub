@@ -20,4 +20,3 @@ export function isWithinRange(target: Date, start: Date, end: Date) {
 export function rangesOverlap(a: { start: Date; end: Date }, b: { start: Date; end: Date }) {
   return a.start <= b.end && b.start <= a.end;
 }
-

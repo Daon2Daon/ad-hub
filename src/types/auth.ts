@@ -63,4 +63,3 @@ export interface ScopedEntity {
   department: string;
   agency: string;
 }
-

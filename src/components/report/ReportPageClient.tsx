@@ -5,7 +5,13 @@ import { useCallback, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 
 import { cn } from "@/lib/utils";
-import type { ReportColumnAccess, ReportFilters, ReportOptions, ReportRow, ReportSummary } from "@/types/report";
+import type {
+  ReportColumnAccess,
+  ReportFilters,
+  ReportOptions,
+  ReportRow,
+  ReportSummary,
+} from "@/types/report";
 
 interface ReportPageClientProps {
   rows: ReportRow[];
@@ -108,7 +114,12 @@ function formatDateCell(value: string | null): string {
   }
 }
 
-export const ReportPageClient = ({ rows, columnAccess, options, summary }: ReportPageClientProps) => {
+export const ReportPageClient = ({
+  rows,
+  columnAccess,
+  options,
+  summary,
+}: ReportPageClientProps) => {
   const [draftFilters, setDraftFilters] = useState<ReportFilters>(() => createFilterState());
   const [appliedFilters, setAppliedFilters] = useState<ReportFilters>(() => createFilterState());
   const [isFilterOpen, setIsFilterOpen] = useState(true);
@@ -194,7 +205,10 @@ export const ReportPageClient = ({ rows, columnAccess, options, summary }: Repor
     return rows.filter((row) => {
       if (
         columnAccess.schedule &&
-        !overlapsPeriod(row, { startDate: appliedFilters.startDate, endDate: appliedFilters.endDate })
+        !overlapsPeriod(row, {
+          startDate: appliedFilters.startDate,
+          endDate: appliedFilters.endDate,
+        })
       ) {
         return false;
       }
@@ -356,7 +370,9 @@ export const ReportPageClient = ({ rows, columnAccess, options, summary }: Repor
                   onChange={(value) => handleDateChange("startDate", value)}
                   disabled={!columnAccess.schedule}
                 />
-                <span className="hidden items-center text-sm font-medium text-slate-400 lg:flex">~</span>
+                <span className="hidden items-center text-sm font-medium text-slate-400 lg:flex">
+                  ~
+                </span>
                 <DatePartsInput
                   label="종료일"
                   value={draftFilters.endDate}
@@ -448,7 +464,8 @@ export const ReportPageClient = ({ rows, columnAccess, options, summary }: Repor
           <div>
             <h2 className="text-lg font-semibold text-slate-900">조회 결과</h2>
             <p className="text-sm text-slate-500">
-              필터 조건에 맞는 데이터를 표 형태로 제공합니다. 엑셀 다운로드를 통해 CSV 파일로 저장할 수 있습니다.
+              필터 조건에 맞는 데이터를 표 형태로 제공합니다. 엑셀 다운로드를 통해 CSV 파일로 저장할
+              수 있습니다.
             </p>
           </div>
           <button
@@ -489,7 +506,8 @@ export const ReportPageClient = ({ rows, columnAccess, options, summary }: Repor
 
         {!hasColumnVisibility ? (
           <section className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
-            열람 가능한 컬럼 권한이 없어 테이블을 표시할 수 없습니다. 관리자에게 컬럼 접근 권한을 요청해주세요.
+            열람 가능한 컬럼 권한이 없어 테이블을 표시할 수 없습니다. 관리자에게 컬럼 접근 권한을
+            요청해주세요.
           </section>
         ) : filteredRows.length === 0 ? (
           <section className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">

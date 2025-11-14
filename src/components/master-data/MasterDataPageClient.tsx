@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAction } from "next-safe-action/hooks";
 
 import {
@@ -9,7 +10,11 @@ import {
   updateMasterDataItemAction,
 } from "@/lib/master-data/actions";
 import { cn } from "@/lib/utils";
-import type { MasterDataCategory, MasterDataItem, MasterDataCategoryMeta } from "@/types/master-data";
+import type {
+  MasterDataCategory,
+  MasterDataItem,
+  MasterDataCategoryMeta,
+} from "@/types/master-data";
 
 interface MasterDataPageClientProps {
   categories: MasterDataCategoryMeta[];
@@ -19,6 +24,7 @@ interface MasterDataPageClientProps {
 type MasterDataMap = Record<MasterDataCategory, MasterDataItem[]>;
 
 export const MasterDataPageClient = ({ categories, initialItems }: MasterDataPageClientProps) => {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<MasterDataCategory>(categories[0].key);
   const [items, setItems] = useState<MasterDataMap>(initialItems);
   const [newValue, setNewValue] = useState("");
@@ -44,9 +50,12 @@ export const MasterDataPageClient = ({ categories, initialItems }: MasterDataPag
       }));
       setNewValue("");
       setFeedback(null);
+      // 다른 페이지들도 최신 마스터 데이터를 가져오도록 새로고침
+      router.refresh();
     },
     onError: ({ error }) => {
-      const message = typeof error.serverError === "string" ? error.serverError : "등록에 실패했습니다.";
+      const message =
+        typeof error.serverError === "string" ? error.serverError : "등록에 실패했습니다.";
       setFeedback(message);
     },
   });
@@ -60,15 +69,29 @@ export const MasterDataPageClient = ({ categories, initialItems }: MasterDataPag
       setItems((prev) => ({
         ...prev,
         [data.item.category]: sortItems(
-          (prev[data.item.category] ?? []).map((item) => (item.id === data.item.id ? data.item : item)),
+          (prev[data.item.category] ?? []).map((item) =>
+            item.id === data.item.id ? data.item : item,
+          ),
         ),
       }));
       setEditId(null);
       setEditValue("");
-      setFeedback(null);
+      
+      // 업데이트된 캠페인 수 표시
+      if (data.updatedCampaigns > 0) {
+        setFeedback(
+          `마스터 데이터가 수정되었고, 관련 캠페인 ${data.updatedCampaigns}건도 함께 업데이트되었습니다.`,
+        );
+      } else {
+        setFeedback(null);
+      }
+      
+      // 다른 페이지들도 최신 마스터 데이터를 가져오도록 새로고침
+      router.refresh();
     },
     onError: ({ error }) => {
-      const message = typeof error.serverError === "string" ? error.serverError : "수정에 실패했습니다.";
+      const message =
+        typeof error.serverError === "string" ? error.serverError : "수정에 실패했습니다.";
       setFeedback(message);
     },
   });
@@ -87,9 +110,12 @@ export const MasterDataPageClient = ({ categories, initialItems }: MasterDataPag
         };
       });
       setFeedback(null);
+      // 다른 페이지들도 최신 마스터 데이터를 가져오도록 새로고침
+      router.refresh();
     },
     onError: ({ error }) => {
-      const message = typeof error.serverError === "string" ? error.serverError : "삭제에 실패했습니다.";
+      const message =
+        typeof error.serverError === "string" ? error.serverError : "삭제에 실패했습니다.";
       setFeedback(message);
     },
   });
@@ -176,7 +202,9 @@ export const MasterDataPageClient = ({ categories, initialItems }: MasterDataPag
             disabled={isCreating}
             className={cn(
               "rounded-lg px-4 py-2 text-sm font-semibold transition",
-              isCreating ? "cursor-not-allowed bg-slate-200 text-slate-500" : "bg-slate-900 text-white hover:bg-slate-800",
+              isCreating
+                ? "cursor-not-allowed bg-slate-200 text-slate-500"
+                : "bg-slate-900 text-white hover:bg-slate-800",
             )}
           >
             추가
@@ -184,17 +212,25 @@ export const MasterDataPageClient = ({ categories, initialItems }: MasterDataPag
         </div>
 
         {feedback ? (
-          <div className="rounded-lg border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">{feedback}</div>
+          <div className="rounded-lg border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+            {feedback}
+          </div>
         ) : null}
 
         <div className="overflow-hidden rounded-xl border border-slate-200">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50">
               <tr>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
+                >
                   값
                 </th>
-                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500"
+                >
                   액션
                 </th>
               </tr>
@@ -286,4 +322,3 @@ export const MasterDataPageClient = ({ categories, initialItems }: MasterDataPag
 function sortItems(items: MasterDataItem[]): MasterDataItem[] {
   return [...items].sort((a, b) => a.value.localeCompare(b.value, "ko"));
 }
-

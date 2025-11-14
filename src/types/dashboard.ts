@@ -33,4 +33,3 @@ export interface DashboardData {
   byCreative: DistributionSlice[];
   byAgency: DistributionSlice[];
 }
-

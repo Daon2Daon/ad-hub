@@ -1,4 +1,9 @@
-import { COLUMN_KEYS, type ColumnKey, type ScopedEntity, type UserAccessProfile } from "@/types/auth";
+import {
+  COLUMN_KEYS,
+  type ColumnKey,
+  type ScopedEntity,
+  type UserAccessProfile,
+} from "@/types/auth";
 
 /**
  * 지정된 컬럼에 대한 접근 권한을 확인합니다.
@@ -32,8 +37,7 @@ export function isRowVisible(profile: UserAccessProfile, entity: ScopedEntity): 
   }
 
   const matchesDepartment =
-    profile.scope.departments.length === 0 ||
-    profile.scope.departments.includes(entity.department);
+    profile.scope.departments.length === 0 || profile.scope.departments.includes(entity.department);
   const matchesAgency =
     profile.scope.agencies.length === 0 || profile.scope.agencies.includes(entity.agency);
 
@@ -77,4 +81,3 @@ export function maskColumns<T extends Record<string, unknown>>(
 
   return masked as T;
 }
-
