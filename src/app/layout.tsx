@@ -6,8 +6,13 @@ import "@/app/globals.css";
 import { AppShell } from "@/components/layout/AppShell";
 import { createDefaultAccessProfile } from "@/lib/auth/profile";
 import { getServerAuthSession } from "@/lib/auth/session";
+import { validateEnv } from "@/lib/env";
 import { buildScheduleColumnAccess } from "@/lib/schedule/utils";
 import type { Role } from "@/types/auth";
+
+// 앱 시작 시 환경 변수 검증
+// 서버 컴포넌트이므로 안전하게 검증 가능
+validateEnv();
 
 interface NavigationItem {
   href: string;

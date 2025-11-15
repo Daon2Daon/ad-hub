@@ -471,7 +471,6 @@ export const SchedulePageClient = ({
         columnAccess={formColumnAccess}
         options={formOptionSets}
         isSubmitting={isCreating}
-        errorMessage={formError ?? undefined}
       />
     </section>
   );
@@ -519,8 +518,6 @@ interface GanttData {
   rows: GanttRow[];
   timeline: TimelineContext;
 }
-
-const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
 function toDayDescriptor(date: Date) {
   const formatted = DATE_KEY_FORMATTER.format(date);

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 
@@ -9,7 +9,6 @@ import { getSignInErrorMessage, getSignUpSuccessMessage } from "@/lib/auth/messa
 
 export const LoginForm = () => {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setSubmitting] = useState(false);
@@ -44,7 +43,8 @@ export const LoginForm = () => {
     }
 
     if (result.ok) {
-      router.replace("/dashboard");
+      // 전체 페이지 리로드를 통해 서버 컴포넌트가 새로운 세션을 읽도록 함
+      window.location.href = "/dashboard";
     } else {
       setErrorMessage(getSignInErrorMessage(result.error));
     }
@@ -55,7 +55,7 @@ export const LoginForm = () => {
       <header className="space-y-2 text-center">
         <h1 className="text-2xl font-semibold text-slate-900">로그인</h1>
         <p className="text-sm text-slate-500">
-          광고주 데이터 관리 시스템에 접속하려면 계정 정보를 입력하세요.
+          광고 데이터 관리 시스템에 접속하려면 계정 정보를 입력하세요
         </p>
       </header>
 
@@ -95,6 +95,7 @@ export const LoginForm = () => {
             id="password"
             type="password"
             required
+            autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"

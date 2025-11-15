@@ -16,8 +16,78 @@ export const SignupForm = () => {
       router.push("/login?signup=success");
     },
     onError: ({ error }) => {
-      const message =
-        typeof error.serverError === "string" ? error.serverError : "가입 중 오류가 발생했습니다.";
+      // 개발 환경에서 전체 에러 객체 로깅
+      if (process.env.NODE_ENV === "development") {
+        try {
+          console.error("Signup error details:", {
+            serverError: error.serverError,
+            validationErrors: error.validationErrors,
+            thrownError: error.thrownError,
+            errorKeys: Object.keys(error),
+            fullError: error,
+          });
+        } catch (e) {
+          console.error("Error logging failed:", e);
+        }
+      }
+
+      let message = "가입 중 오류가 발생했습니다.";
+
+      // Validation 에러 확인 (가장 우선순위)
+      if (error.validationErrors && Object.keys(error.validationErrors).length > 0) {
+        const validationMessages = Object.entries(error.validationErrors)
+          .flatMap(([field, fieldErrors]) => {
+            if (!fieldErrors) return [];
+            
+            // next-safe-action의 validation 에러 구조 처리
+            if (Array.isArray(fieldErrors)) {
+              return fieldErrors.map((err) => {
+                if (typeof err === "string") {
+                  return err;
+                }
+                if (
+                  err &&
+                  typeof err === "object" &&
+                  "_errors" in err &&
+                  Array.isArray((err as { _errors: unknown })._errors)
+                ) {
+                  return (err as { _errors: string[] })._errors.join(", ");
+                }
+                return String(err);
+              });
+            }
+            
+            // 중첩된 객체 구조 처리
+            if (typeof fieldErrors === "object" && "_errors" in fieldErrors) {
+              const nestedErrors = (fieldErrors as { _errors?: unknown[] })._errors;
+              if (Array.isArray(nestedErrors)) {
+                return nestedErrors.map((err) => String(err));
+              }
+            }
+            
+            return [String(fieldErrors)];
+          })
+          .filter(Boolean);
+
+        if (validationMessages.length > 0) {
+          message = validationMessages.join(", ");
+        }
+      }
+      // 서버 에러 확인
+      else if (error.serverError) {
+        message =
+          typeof error.serverError === "string"
+            ? error.serverError
+            : String(error.serverError);
+      }
+      // 기타 에러
+      else if (error.thrownError) {
+        message =
+          error.thrownError instanceof Error
+            ? error.thrownError.message
+            : String(error.thrownError);
+      }
+
       setErrorMessage(message);
     },
   });

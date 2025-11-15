@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { createDefaultAccessProfile } from "@/lib/auth/profile";
 import { getServerAuthSession } from "@/lib/auth/session";
+import { logger } from "@/lib/logger";
 import { logDataCreate, logDataDelete, logDataUpdate, logExcelUpload } from "@/lib/logs/logger";
 import { actionClient } from "@/lib/safe-action";
 import { mapCampaignModelToRecord } from "@/lib/schedule/utils";
@@ -190,25 +191,25 @@ async function createMasterDataValuesBatch(
     // createMany는 unique constraint violation을 일부 DB에서 지원하지 않으므로
     // 개별 create를 사용하되, 트랜잭션으로 묶어 일관성 보장
     await prisma.$transaction(
-      toCreate.map(({ category, value }) =>
-        prisma.masterDataItem
-          .create({
-            data: {
-              category,
-              value,
-            },
-          })
-          .then((item) => {
+      async (tx) => {
+        for (const { category, value } of toCreate) {
+          try {
+            const item = await tx.masterDataItem.create({
+              data: {
+                category,
+                value,
+              },
+            });
             created.push({ category, value: item.value });
-          })
-          .catch((error) => {
+          } catch (error) {
             // 동시성 문제로 인한 중복 생성 시도는 무시
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-              return;
+              continue;
             }
             throw error;
-          }),
-      ),
+          }
+        }
+      },
       {
         isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
       },
@@ -1003,10 +1004,12 @@ export const bulkUploadCampaignsAction = actionClient
           ? `행 ${rowIndex}: ${error.message}` 
           : `행 ${rowIndex}: 알 수 없는 오류가 발생했습니다.`;
         errors.push(message);
-        // 프로덕션 환경에서는 구조화된 로깅 사용 고려
-        if (process.env.NODE_ENV === "development") {
-          console.error(`CSV 업로드 오류 (행 ${rowIndex}):`, error);
-        }
+        // 구조화된 로깅
+        logger.error(
+          `CSV 업로드 오류 (행 ${rowIndex})`,
+          error instanceof Error ? error : new Error(String(error)),
+          { rowIndex, row },
+        );
       }
     }
 
@@ -1023,7 +1026,7 @@ export const bulkUploadCampaignsAction = actionClient
 
     if (errors.length > 0) {
       // 일부 성공한 경우에도 경고 메시지 포함
-      console.warn("일부 행 처리 실패:", errors);
+      logger.warn("일부 행 처리 실패", { errors, errorCount: errors.length });
     }
 
     revalidateManagementRelatedPaths();

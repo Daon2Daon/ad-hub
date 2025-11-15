@@ -2,6 +2,7 @@
 
 import type { ActivityLogType } from "@prisma/client";
 
+import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
 export interface LogActivityParams {
@@ -28,7 +29,11 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
   } catch (error) {
     // 로그 기록 실패는 메인 로직에 영향을 주지 않도록 에러를 무시합니다.
     // 프로덕션 환경에서는 별도의 로깅 서비스로 에러를 전송하는 것을 고려하세요.
-    console.error("활동 로그 기록 실패:", error);
+    logger.error(
+      "활동 로그 기록 실패",
+      error instanceof Error ? error : new Error(String(error)),
+      { params },
+    );
   }
 }
 

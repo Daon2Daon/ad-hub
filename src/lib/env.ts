@@ -5,6 +5,14 @@ const serverSchema = z.object({
   DATABASE_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(32, "NEXTAUTH_SECRET must be at least 32 characters"),
   NEXTAUTH_URL: z.string().url().optional(),
+  // 로깅 설정
+  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).optional(),
+  // 외부 로깅 서비스 설정
+  SENTRY_DSN: z.string().url().optional(),
+  DATADOG_API_KEY: z.string().optional(),
+  // 로그 보관 설정
+  LOG_STORAGE_ENABLED: z.enum(["true", "false"]).optional(),
+  LOG_STORAGE_PATH: z.string().optional(),
 });
 
 const clientSchema = z.object({});
@@ -26,11 +34,26 @@ export function getServerEnv(): ServerEnv {
   const parsed = serverSchema.safeParse(process.env);
 
   if (!parsed.success) {
-    throw new Error(`Invalid server environment variables: ${parsed.error.flatten().fieldErrors}`);
+    const errors = parsed.error.flatten().fieldErrors;
+    const errorMessage = Object.entries(errors)
+      .map(([key, messages]) => `${key}: ${messages?.join(", ") ?? "invalid"}`)
+      .join("; ");
+    throw new Error(`Invalid server environment variables: ${errorMessage}`);
   }
 
   cachedServerEnv = parsed.data;
   return parsed.data;
+}
+
+/**
+ * 환경 변수를 명시적으로 검증합니다.
+ * 앱 시작 시점에 호출하여 빌드/런타임 오류를 조기에 발견합니다.
+ * @throws {Error} 환경 변수가 유효하지 않은 경우
+ */
+export function validateEnv(): void {
+  // getServerEnv()를 호출하여 검증 수행
+  // 이미 검증된 경우 캐시된 값을 반환하므로 성능 영향 없음
+  getServerEnv();
 }
 
 /**

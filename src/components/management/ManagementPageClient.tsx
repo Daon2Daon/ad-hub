@@ -829,7 +829,6 @@ export const ManagementPageClient = ({
         options={optionSets}
         isSubmitting={formMode === "create" ? isCreating : isUpdating}
         title={activeFormTitle}
-        errorMessage={actionError ?? undefined}
         fieldErrors={fieldErrors}
       />
 

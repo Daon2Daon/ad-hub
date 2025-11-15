@@ -48,7 +48,6 @@ export interface CampaignFormModalProps {
   columnAccess: ManagementColumnAccess;
   options: ManagementOptions;
   isSubmitting: boolean;
-  errorMessage?: string;
   fieldErrors?: Partial<Record<keyof CampaignFormState, string>>;
 }
 
@@ -63,7 +62,6 @@ export const CampaignFormModal = ({
   columnAccess,
   options,
   isSubmitting,
-  errorMessage,
   fieldErrors = {},
 }: CampaignFormModalProps) => {
   if (!open) {

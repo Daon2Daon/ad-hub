@@ -11,7 +11,6 @@ import { actionClient } from "@/lib/safe-action";
 import {
   createMasterDataItem,
   deleteMasterDataItem,
-  updateMasterDataItem,
 } from "@/lib/master-data/repository";
 import type { MasterDataCategory, MasterDataItem } from "@/types/master-data";
 
@@ -82,28 +81,6 @@ const MASTER_DATA_TO_CAMPAIGN_FIELD: Record<MasterDataCategory, keyof Prisma.Cam
   department: "department",
   agency: "agency",
 } as const;
-
-/**
- * 마스터 데이터 수정 시 관련 Campaign 데이터도 함께 업데이트
- */
-async function updateRelatedCampaigns(
-  category: MasterDataCategory,
-  oldValue: string,
-  newValue: string,
-): Promise<{ updatedCount: number }> {
-  const field = MASTER_DATA_TO_CAMPAIGN_FIELD[category];
-
-  const result = await prisma.campaign.updateMany({
-    where: {
-      [field]: oldValue,
-    },
-    data: {
-      [field]: newValue,
-    },
-  });
-
-  return { updatedCount: result.count };
-}
 
 /**
  * 마스터 데이터를 사용하는 Campaign이 있는지 확인
