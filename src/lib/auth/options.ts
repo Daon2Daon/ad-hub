@@ -5,6 +5,12 @@ import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 
 import { getServerEnv } from "@/lib/env";
+import {
+  getRemainingAttempts,
+  isLoginLocked,
+  recordLoginFailure,
+  resetLoginAttempts,
+} from "@/lib/auth/rate-limit";
 import { verifyPassword } from "@/lib/auth/password";
 import { createDefaultAccessProfile, toUserAccessProfile } from "@/lib/auth/profile";
 import { logLoginFailure, logLoginSuccess } from "@/lib/logs/logger";
@@ -57,6 +63,10 @@ export const authOptions: NextAuthOptions = {
   secret: env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 24시간 (초 단위)
+  },
+  jwt: {
+    maxAge: 24 * 60 * 60, // 24시간 (초 단위)
   },
   pages: {
     signIn: "/login",
@@ -74,6 +84,7 @@ export const authOptions: NextAuthOptions = {
         if (!parsed.success) {
           const loginId = credentials?.loginId as string | undefined;
           if (loginId) {
+            recordLoginFailure(loginId);
             await logLoginFailure(loginId, "입력 형식 오류");
           }
           throw new Error("INVALID_CREDENTIALS");
@@ -81,13 +92,25 @@ export const authOptions: NextAuthOptions = {
 
         const { loginId, password } = parsed.data;
 
+        // 레이트 리미팅 체크: 계정이 잠금 상태인지 확인
+        const lockRemainingSeconds = isLoginLocked(loginId);
+        if (lockRemainingSeconds !== null) {
+          await logLoginFailure(
+            loginId,
+            `계정 일시 잠금 (남은 시간: ${Math.ceil(lockRemainingSeconds / 60)}분)`,
+          );
+          throw new Error(`ACCOUNT_LOCKED:${lockRemainingSeconds}`);
+        }
+
         const user = await prisma.user.findUnique({
           where: { loginId },
         });
 
         if (!user || !user.passwordHash) {
+          recordLoginFailure(loginId);
           await logLoginFailure(loginId, "사용자 없음 또는 비밀번호 없음");
-          throw new Error("INVALID_CREDENTIALS");
+          const remaining = getRemainingAttempts(loginId);
+          throw new Error(`INVALID_CREDENTIALS:${remaining}`);
         }
 
         if (user.status !== "active") {
@@ -99,9 +122,21 @@ export const authOptions: NextAuthOptions = {
         const isValid = await verifyPassword(password, user.passwordHash);
 
         if (!isValid) {
-          await logLoginFailure(loginId, "비밀번호 불일치");
-          throw new Error("INVALID_CREDENTIALS");
+          recordLoginFailure(loginId);
+          const remaining = getRemainingAttempts(loginId);
+          await logLoginFailure(loginId, `비밀번호 불일치 (남은 시도: ${remaining}회)`);
+
+          // 계정이 잠금되었는지 다시 확인
+          const lockRemainingSecondsAfterFailure = isLoginLocked(loginId);
+          if (lockRemainingSecondsAfterFailure !== null) {
+            throw new Error(`ACCOUNT_LOCKED:${lockRemainingSecondsAfterFailure}`);
+          }
+
+          throw new Error(`INVALID_CREDENTIALS:${remaining}`);
         }
+
+        // 로그인 성공: 시도 기록 초기화
+        resetLoginAttempts(loginId);
 
         // 로그인 성공 로그 기록
         await logLoginSuccess(user.id, user.loginId);
