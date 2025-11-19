@@ -45,3 +45,5 @@ pnpm-debug.log*
 
 .cursor
 .npm-cache
+
+/docs

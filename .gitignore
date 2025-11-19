@@ -16,13 +16,5 @@ package-lock.json
 
 /generated/prisma
 
-# Docker 데이터베이스 볼륨
-postgres-database/
-
-SETUP_GUIDE.md
-SYNOLOGY_NAS_SETUP.md
-LOCAL_SETUP_CHECKLIST.md
-docker-compose.yml
-
 .cursor
 .npm-cache

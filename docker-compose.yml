@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+  # Next.js 애플리케이션 서비스
+  app:
+    container_name: adhub-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      # [.env 설정 가이드]
+      # NEXTAUTH_URL=http://[NAS_IP]:6709
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      
+      # [중요] 호스트 이름은 아래 'postgres' 서비스명을 써야 함
+      # DATABASE_URL="postgresql://postgres:비밀번호@postgres:5432/adhub?schema=public"
+      DATABASE_URL: ${DATABASE_URL}
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5412:3000"
+    networks:
+      - adhub-network
+    healthcheck:
+      # [수정] /api/health 경로가 없다면 메인 페이지(/)를 체크하도록 변경
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL 데이터베이스 서비스
+  # [서비스명]: 이 이름(postgres)이 내부 네트워크의 도메인 주소가 됩니다.
+  postgres:
+    image: postgres:15-alpine
+    container_name: adhub-database-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: adhub
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      # 외부 접속(DBeaver 등)이 필요 없다면 주석 처리 권장
+      - "6709:5432"
+    volumes:
+      - /volume1/docker/ad-hub/postgres-database:/var/lib/postgresql/data
+    networks:
+      - adhub-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  adhub-network:
+    driver: bridge

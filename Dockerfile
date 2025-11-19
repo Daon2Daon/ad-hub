@@ -56,6 +56,14 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 
+# [추가] seed 및 verify 스크립트 실행을 위해 필요한 파일 복사
+# tsconfig.json: tsx가 path alias(@/)를 해석하기 위해 필요
+# src/: seed.ts와 verify-admin.ts가 import하는 모듈들이 있음
+# scripts/: verify-admin.ts 스크립트가 있음
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/scripts ./scripts
+
 # [추가] seed 실행을 위해 tsx 및 tsconfig-paths 설치 (devDependencies이지만 seed 실행에 필요)
 # deps 단계에서 npm ci가 devDependencies도 설치하지만, 확실하게 하기 위해 로컬 설치
 # NODE_ENV를 일시적으로 해제하여 devDependencies 설치 가능하도록 함

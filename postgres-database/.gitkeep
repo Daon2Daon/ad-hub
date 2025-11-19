@@ -1,0 +1,3 @@
+# 처음 빌드할때 postgres-database 폴더가 존재해야 오류가 발생하지 않습니다.
+# 처음 빌드할때는 postgres-database 폴더 안의 모든 파일은 무시해도 됩니다.
+# git 관리를 위해 .gitkeep 파일만 존재합니다. (폴더 구조 유지를 위해)

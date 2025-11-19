@@ -102,8 +102,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error(`ACCOUNT_LOCKED:${lockRemainingSeconds}`);
         }
 
+        // accessProfile을 포함하여 한 번의 쿼리로 모든 정보 조회 (enrichToken에서 재조회 방지)
         const user = await prisma.user.findUnique({
           where: { loginId },
+          include: { accessProfile: true },
         });
 
         if (!user || !user.passwordHash) {
@@ -148,6 +150,8 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           role: user.role,
           status: user.status,
+          // accessProfile 정보를 user 객체에 포함하여 jwt callback에서 사용
+          accessProfile: toUserAccessProfile(user),
         };
       },
     }),
@@ -163,14 +167,24 @@ export const authOptions: NextAuthOptions = {
       };
 
       if (user) {
+        // authorize에서 이미 accessProfile을 포함하여 조회했으므로 바로 사용
+        const userWithProfile = user as {
+          role?: Role;
+          status?: UserStatus;
+          loginId?: string;
+          accessProfile?: UserAccessProfile;
+        };
+
         payload = {
           ...payload,
-          role: (user as { role?: Role }).role ?? payload.role,
-          status: (user as { status?: UserStatus }).status ?? payload.status,
-          loginId: (user as { loginId?: string }).loginId ?? payload.loginId,
+          role: userWithProfile.role ?? payload.role,
+          status: userWithProfile.status ?? payload.status,
+          loginId: userWithProfile.loginId ?? payload.loginId,
+          accessProfile: userWithProfile.accessProfile ?? payload.accessProfile,
         };
       }
 
+      // user 객체가 없거나 필요한 정보가 누락된 경우에만 enrichToken 호출 (재조회)
       if (!payload.role || !payload.status || !payload.accessProfile || !payload.loginId) {
         payload = await enrichToken(payload);
       }
