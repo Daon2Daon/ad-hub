@@ -3,7 +3,7 @@ import "dotenv/config";
 import { Prisma, PrismaClient } from "@prisma/client";
 
 import { createDefaultAccessProfile } from "@/lib/auth/profile";
-import { hashPassword } from "@/lib/auth/password";
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
 
 const prisma = new PrismaClient();
 
@@ -13,48 +13,72 @@ const ADMIN_PASSWORD = process.env["SEED_ADMIN_PASSWORD"] ?? "admin123";
 const ADMIN_NAME = process.env["SEED_ADMIN_NAME"] ?? "시스템 관리자";
 
 async function main() {
-  console.info("[seed] 시작: 관리자 계정을 확인합니다.");
+  console.info("🚀 [seed] 데이터베이스 시딩을 시작합니다.");
+  console.info(`👤 [seed] 대상 관리자 ID: ${ADMIN_LOGIN_ID}`);
 
-  const existingUser = await prisma.user.findUnique({
+  // 1. 비밀번호 해싱 (항상 수행)
+  const hashedPassword = await hashPassword(ADMIN_PASSWORD);
+
+  // 2. 관리자 계정 Upsert (없으면 생성, 있으면 정보 갱신)
+  // 핵심: 시딩을 돌릴 때마다 패스워드를 재설정하여 .env와 동기화합니다.
+  const adminUser = await prisma.user.upsert({
     where: { loginId: ADMIN_LOGIN_ID },
+    update: {
+      passwordHash: hashedPassword, // [중요] 비밀번호 강제 업데이트
+      email: ADMIN_EMAIL,
+      name: ADMIN_NAME,
+      role: "admin",
+      status: "active",
+    },
+    create: {
+      loginId: ADMIN_LOGIN_ID,
+      email: ADMIN_EMAIL,
+      name: ADMIN_NAME,
+      passwordHash: hashedPassword,
+      role: "admin",
+      status: "active",
+    },
   });
 
-  const adminUser =
-    existingUser ??
-    (await (async () => {
-      const hashedPassword = await hashPassword(ADMIN_PASSWORD);
-      const defaultProfile = createDefaultAccessProfile("admin");
+  console.info(`✅ [seed] 관리자 계정 처리 완료 (ID: ${adminUser.id})`);
 
-      const created = await prisma.user.create({
-        data: {
-          loginId: ADMIN_LOGIN_ID,
-          email: ADMIN_EMAIL,
-          name: ADMIN_NAME,
-          passwordHash: hashedPassword,
-          role: "admin",
-          status: "active",
-          accessProfile: {
-            create: {
-              columnPermissions: defaultProfile.columnPermissions,
-              departments: defaultProfile.scope.departments,
-              agencies: defaultProfile.scope.agencies,
-            },
-          },
-        },
-      });
+  // 3. 권한 프로필(Access Profile) 설정
+  const defaultProfile = createDefaultAccessProfile("admin");
+  
+  await prisma.userAccessProfile.upsert({
+    where: { userId: adminUser.id },
+    create: {
+      userId: adminUser.id,
+      columnPermissions: defaultProfile.columnPermissions,
+      departments: defaultProfile.scope.departments,
+      agencies: defaultProfile.scope.agencies,
+    },
+    update: {
+      columnPermissions: defaultProfile.columnPermissions,
+      departments: defaultProfile.scope.departments,
+      agencies: defaultProfile.scope.agencies,
+    },
+  });
+  
+  console.info("✅ [seed] 권한 프로필 설정 완료");
 
-      console.info("[seed] 관리자 계정을 생성했습니다.");
-      console.info(`[seed] 아이디: ${ADMIN_LOGIN_ID}`);
-      console.info(`[seed] 이메일: ${ADMIN_EMAIL}`);
-      console.info("[seed] 기본 비밀번호는 .env 설정을 참고하세요.");
+  // 4. 비밀번호 검증 테스트 (자가 진단)
+  console.info("🔍 [seed] 로그인 테스트를 수행합니다...");
+  if (adminUser.passwordHash) {
+    const passwordValid = await verifyPassword(ADMIN_PASSWORD, adminUser.passwordHash);
+    if (passwordValid) {
+      console.info(`✨ [seed] 테스트 성공: '${ADMIN_PASSWORD}' 비밀번호로 로그인 가능합니다.`);
+    } else {
+      console.error("❌ [seed] 치명적 오류: 비밀번호 검증 실패. 해싱 로직을 확인하세요.");
+      throw new Error("비밀번호 검증 실패");
+    }
+  }
 
-      return created;
-    })());
-
+  // 5. 샘플 데이터 생성 (기존 로직 유지)
   const campaignCount = await prisma.campaign.count();
 
   if (campaignCount === 0) {
-    console.info("[seed] 샘플 캠페인 데이터를 추가합니다.");
+    console.info("📦 [seed] 샘플 캠페인 데이터를 추가합니다...");
 
     const sampleCampaigns = [
       {
@@ -120,16 +144,15 @@ async function main() {
         ownerId: adminUser.id,
       })),
     });
-
-    console.info("[seed] 샘플 캠페인 데이터를 추가했습니다.");
+    console.info("✅ [seed] 샘플 데이터 추가 완료");
   } else {
-    console.info("[seed] 기존 캠페인 데이터가 존재하여 추가 시드를 건너뜁니다.");
+    console.info("ℹ️ [seed] 기존 캠페인 데이터가 존재하여 샘플 추가를 건너뜁니다.");
   }
 }
 
 main()
   .catch((error) => {
-    console.error("[seed] 오류 발생:", error);
+    console.error("❌ [seed] 스크립트 실행 중 오류 발생:", error);
     process.exit(1);
   })
   .finally(async () => {

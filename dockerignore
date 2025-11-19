@@ -1,0 +1,47 @@
+# OS 시스템 파일 (Ghost Files) - Next.js 빌드 에러 방지
+# macOS
+.DS_Store
+._*
+# Windows
+Thumbs.db
+Desktop.ini
+
+# 빌드 결과물 및 캐시
+node_modules
+.next
+.turbo
+dist
+out
+coverage
+
+# VCS
+.git
+.gitignore
+
+# IDE / editor
+.vscode
+.idea
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Docker artifacts (선택사항 - 빌드 컨텍스트에서 제외)
+# Dockerfile*
+# docker-compose*.yml
+
+# ... 기존 내용 유지 ...
+
+# Synology NAS 시스템 폴더 (필수)
+@eaDir
+@Logfiles
+.SynologyWorkingDirectory
+#eaDir
+
+.cursor
+.npm-cache
