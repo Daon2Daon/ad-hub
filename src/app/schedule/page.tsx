@@ -49,10 +49,10 @@ const Page = async () => {
   );
 
   return (
-    <main className="flex min-h-screen flex-col gap-8 bg-slate-100 px-6 py-10">
-      <header className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold text-slate-900">매체 스케줄</h1>
-        <p className="text-sm text-slate-600">
+    <main className="flex min-h-screen flex-col gap-6 bg-slate-100 px-4 py-6 md:gap-8 md:px-6 md:py-10">
+      <header className="flex flex-col gap-3 md:gap-4">
+        <h1 className="text-xl font-semibold text-slate-900 md:text-2xl">매체 스케줄</h1>
+        <p className="text-xs text-slate-600 md:text-sm">
           간트 차트와 캘린더 뷰를 통해 캠페인 일정을 확인하고 신규 일정을 등록할 수 있습니다.
         </p>
       </header>

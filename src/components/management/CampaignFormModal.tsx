@@ -73,21 +73,38 @@ export const CampaignFormModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6">
-      <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
-        <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+      <div className="flex h-full w-full max-h-[90vh] max-w-3xl flex-col rounded-2xl bg-white shadow-2xl md:h-auto md:max-h-[85vh]">
+        <header className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3 md:px-6 md:py-4">
+          <h2 className="text-base font-semibold text-slate-900 md:text-lg">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
             aria-label="모달 닫기"
           >
-            ✕
+            <svg
+              className="h-5 w-5"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
           </button>
         </header>
 
-        <form onSubmit={onSubmit} className="space-y-5 px-6 py-6">
+        <form
+          onSubmit={onSubmit}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        >
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 md:space-y-5 md:px-6 md:py-6">
           <div className="grid gap-4 sm:grid-cols-2">
             {columnAccess.campaign ? (
               <Field
@@ -253,31 +270,34 @@ export const CampaignFormModal = ({
               </div>
             ) : null}
           </div>
+          </div>
 
-          <footer className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className={cn(
-                "rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50",
-                isSubmitting && "cursor-not-allowed opacity-70",
-              )}
-            >
-              취소
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={cn(
-                "rounded-lg px-4 py-2 text-sm font-semibold transition",
-                isSubmitting
-                  ? "cursor-not-allowed bg-slate-200 text-slate-500"
-                  : "bg-slate-900 text-white hover:bg-slate-800",
-              )}
-            >
-              {isSubmitting ? "처리 중..." : mode === "create" ? "등록" : "저장"}
-            </button>
+          <footer className="flex-shrink-0 border-t border-slate-100 bg-white px-4 py-3 md:px-6 md:py-4">
+            <div className="flex justify-end gap-2 md:gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className={cn(
+                  "rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50",
+                  isSubmitting && "cursor-not-allowed opacity-70",
+                )}
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={cn(
+                  "rounded-lg px-4 py-2 text-sm font-semibold transition",
+                  isSubmitting
+                    ? "cursor-not-allowed bg-slate-200 text-slate-500"
+                    : "bg-slate-900 text-white hover:bg-slate-800",
+                )}
+              >
+                {isSubmitting ? "처리 중..." : mode === "create" ? "등록" : "저장"}
+              </button>
+            </div>
           </footer>
         </form>
       </div>

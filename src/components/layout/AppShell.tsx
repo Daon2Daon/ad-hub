@@ -175,7 +175,7 @@ export const AppShell = ({ navItems, children, user }: AppShellProps) => {
               </p>
             </div>
           </div>
-          <div className="hidden sm:block">
+          <div className="flex items-center gap-2">
             <SignOutButton />
           </div>
         </header>

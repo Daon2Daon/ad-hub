@@ -15,6 +15,7 @@ import {
   startOfWeek,
   subMonths,
 } from "date-fns";
+import { ko } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 import { useAction } from "next-safe-action/hooks";
 
@@ -54,12 +55,12 @@ const VIEW_OPTIONS: { value: ScheduleView; label: string }[] = [
 const ALL_OPTION = "all";
 
 const COLOR_VARIANTS = [
-  { barClass: "bg-slate-900", accentClass: "border-l-slate-900", badgeClass: "bg-slate-900" },
-  { barClass: "bg-blue-600", accentClass: "border-l-blue-600", badgeClass: "bg-blue-600" },
-  { barClass: "bg-emerald-600", accentClass: "border-l-emerald-600", badgeClass: "bg-emerald-600" },
-  { barClass: "bg-amber-600", accentClass: "border-l-amber-600", badgeClass: "bg-amber-600" },
-  { barClass: "bg-purple-600", accentClass: "border-l-purple-600", badgeClass: "bg-purple-600" },
-  { barClass: "bg-rose-600", accentClass: "border-l-rose-600", badgeClass: "bg-rose-600" },
+  { barClass: "bg-indigo-500/90", accentClass: "border-l-indigo-500", badgeClass: "bg-indigo-500" },
+  { barClass: "bg-emerald-500/90", accentClass: "border-l-emerald-500", badgeClass: "bg-emerald-500" },
+  { barClass: "bg-rose-500/90", accentClass: "border-l-rose-500", badgeClass: "bg-rose-500" },
+  { barClass: "bg-amber-500/90", accentClass: "border-l-amber-500", badgeClass: "bg-amber-500" },
+  { barClass: "bg-violet-500/90", accentClass: "border-l-violet-500", badgeClass: "bg-violet-500" },
+  { barClass: "bg-cyan-500/90", accentClass: "border-l-cyan-500", badgeClass: "bg-cyan-500" },
 ] as const;
 
 type ColorVariant = (typeof COLOR_VARIANTS)[number];
@@ -145,6 +146,10 @@ export const SchedulePageClient = ({
 
   const ganttData = useMemo(
     () => buildGanttData(filteredItems, currentMonth),
+    [filteredItems, currentMonth],
+  );
+  const monthGanttData = useMemo(
+    () => buildMonthGanttData(filteredItems, currentMonth),
     [filteredItems, currentMonth],
   );
   const calendarData = useMemo(
@@ -308,7 +313,7 @@ export const SchedulePageClient = ({
     }
 
     if (view === "gantt") {
-      return <ScheduleGantt {...ganttData} columnAccess={columnAccess} />;
+      return <ScheduleGanttMonth {...monthGanttData} columnAccess={columnAccess} />;
     }
 
     return <ScheduleCalendar {...calendarData} columnAccess={columnAccess} />;
@@ -327,8 +332,8 @@ export const SchedulePageClient = ({
   }, [isFilterPristine, isFilterPanelOpen]);
 
   return (
-    <section className="flex flex-col gap-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="flex flex-col gap-4 md:gap-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:p-4">
         <div className="flex flex-wrap gap-2">
           {VIEW_OPTIONS.map(({ value, label }) => (
             <button
@@ -348,8 +353,104 @@ export const SchedulePageClient = ({
         </div>
       </div>
 
-      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:space-y-4 md:p-6">
+        {/* Mobile Layout */}
+        <div className="flex flex-col gap-3 md:hidden">
+          {/* Date Navigation - Mobile */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1">
+              <button
+                type="button"
+                onClick={() => handleMonthChange("prev")}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+                aria-label="이전 달"
+              >
+                <svg
+                  className="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <span className="flex-1 text-center text-sm font-semibold text-slate-800">
+                {format(currentMonth, "yyyy년 M월")}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleMonthChange("next")}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+                aria-label="다음 달"
+              >
+                <svg
+                  className="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={handleResetMonth}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              오늘
+            </button>
+          </div>
+
+          {/* Info and Filter - Mobile */}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-slate-500">
+              총 {filteredItems.length.toLocaleString("ko-KR")}건
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsFilterPanelOpen((prev) => !prev)}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-lg border transition",
+                isFilterPanelOpen
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
+              )}
+              aria-expanded={isFilterPanelOpen}
+              aria-label="필터"
+            >
+              <svg
+                className="h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden flex-col gap-3 md:flex lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -446,15 +547,49 @@ export const SchedulePageClient = ({
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-1 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+        {/* Desktop Info */}
+        <div className="hidden flex-col gap-1 text-sm text-slate-600 sm:flex sm:flex-row sm:items-center sm:justify-between">
           <span>기간: {monthRangeLabel}</span>
           <span>총 {filteredItems.length.toLocaleString("ko-KR")}건</span>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
         {renderView()}
       </div>
+
+      {/* Mobile FAB - 신규 등록 */}
+      <button
+        type="button"
+        onClick={() => {
+          setFormState(EMPTY_CAMPAIGN_FORM_STATE);
+          setFormError(null);
+          setFormOpen(true);
+        }}
+        disabled={!canCreateCampaign}
+        className={cn(
+          "fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition md:hidden",
+          canCreateCampaign
+            ? "bg-slate-900 text-white hover:bg-slate-800 active:scale-95"
+            : "cursor-not-allowed bg-slate-200 text-slate-500",
+        )}
+        aria-label="신규 등록"
+      >
+        <svg
+          className="h-6 w-6"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M12 4v16m8-8H4"
+          />
+        </svg>
+      </button>
 
       <CampaignFormModal
         open={formOpen}
@@ -502,6 +637,25 @@ interface TimelineContext {
   dayIndexMap: Record<string, number>;
 }
 
+interface MonthTimelineContext {
+  months: Array<{
+    key: string;
+    year: number;
+    month: number;
+    label: string;
+    startDate: Date;
+    endDate: Date;
+  }>;
+  years: Array<{
+    key: string;
+    year: number;
+    startMonthIndex: number;
+    monthCount: number;
+  }>;
+  monthIndexMap: Record<string, number>;
+  todayMonthIndex: number | null;
+}
+
 interface GanttRow {
   id: string;
   label: string;
@@ -528,6 +682,88 @@ function toDayDescriptor(date: Date) {
   const utcMidnight = Date.UTC(year, month - 1, day);
   const weekday = new Date(utcMidnight).getUTCDay();
   return { key: formatted, year, month, day, weekday };
+}
+
+function buildMonthTimelineContext(centerMonth: Date): MonthTimelineContext {
+  const months: MonthTimelineContext["months"] = [];
+  const monthIndexMap: Record<string, number> = {};
+  const today = new Date();
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth() + 1;
+  let todayMonthIndex: number | null = null;
+
+  // 현재 달 기준으로 앞뒤 달 계산
+  const startMonth = subMonths(centerMonth, Math.floor(MONTHS_TO_SHOW / 2));
+  const endMonth = addMonths(centerMonth, Math.floor(MONTHS_TO_SHOW / 2));
+
+  let currentDate = startOfMonth(startMonth);
+  const endDate = endOfMonth(endMonth);
+  let index = 0;
+
+  while (currentDate <= endDate) {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+    const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+    const monthLabel = format(currentDate, "M월", { locale: ko });
+
+    months.push({
+      key: monthKey,
+      year,
+      month,
+      label: monthLabel,
+      startDate: startOfMonth(currentDate),
+      endDate: endOfMonth(currentDate),
+    });
+
+    monthIndexMap[monthKey] = index;
+
+    if (year === todayYear && month === todayMonth) {
+      todayMonthIndex = index;
+    }
+
+    currentDate = addMonths(currentDate, 1);
+    index++;
+  }
+
+  // 연도 그룹화
+  const years: MonthTimelineContext["years"] = [];
+  let currentYear: number | null = null;
+  let yearStartIndex = 0;
+  let yearMonthCount = 0;
+
+  months.forEach((month, index) => {
+    if (currentYear !== month.year) {
+      if (currentYear !== null) {
+        years.push({
+          key: String(currentYear),
+          year: currentYear,
+          startMonthIndex: yearStartIndex,
+          monthCount: yearMonthCount,
+        });
+      }
+      currentYear = month.year;
+      yearStartIndex = index;
+      yearMonthCount = 1;
+    } else {
+      yearMonthCount++;
+    }
+  });
+
+  if (currentYear !== null) {
+    years.push({
+      key: String(currentYear),
+      year: currentYear,
+      startMonthIndex: yearStartIndex,
+      monthCount: yearMonthCount,
+    });
+  }
+
+  return {
+    months,
+    years,
+    monthIndexMap,
+    todayMonthIndex,
+  };
 }
 
 function buildTimelineContext(month: Date): TimelineContext {
@@ -601,6 +837,125 @@ function buildTimelineContext(month: Date): TimelineContext {
     rangeLabel,
     dayIndexMap,
   };
+}
+
+interface MonthGanttData {
+  rows: Array<{
+    id: string;
+    label: string;
+    channel: string;
+    department: string;
+    agency: string;
+    startDate: Date | null;
+    endDate: Date | null;
+    barStartPx: number | null;
+    barLengthPx: number | null;
+    barStartMonthIndex: number | null;
+    barEndMonthIndex: number | null;
+  }>;
+  timeline: MonthTimelineContext;
+}
+
+function buildMonthGanttData(records: ScheduleRecord[], centerMonth: Date): MonthGanttData {
+  const timeline = buildMonthTimelineContext(centerMonth);
+
+  if (timeline.months.length === 0) {
+    return { rows: [], timeline };
+  }
+
+  const firstMonth = timeline.months[0];
+  const lastMonth = timeline.months[timeline.months.length - 1];
+  const rangeStart = firstMonth.startDate;
+  const rangeEnd = lastMonth.endDate;
+
+  const normalized = records
+    .map((record) => {
+      if (!record.startDate || !record.endDate) {
+        return null;
+      }
+
+      const startDate = parseISO(record.startDate);
+      const endDate = parseISO(record.endDate);
+
+      // 범위와 겹치는지 확인
+      if (endDate < rangeStart || startDate > rangeEnd) {
+        return null;
+      }
+
+      return {
+        record,
+        startDate,
+        endDate,
+      };
+    })
+    .filter((value): value is NonNullable<typeof value> => Boolean(value));
+
+  const rows = normalized
+    .sort(({ record: a, startDate: startA }, { record: b, startDate: startB }) => {
+      if (a.channel !== b.channel) {
+        return a.channel.localeCompare(b.channel, "ko");
+      }
+      if (a.campaign !== b.campaign) {
+        return a.campaign.localeCompare(b.campaign, "ko");
+      }
+      const timeA = startA.getTime();
+      const timeB = startB.getTime();
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
+      return (a.startDate || "").localeCompare(b.startDate || "");
+    })
+    .map(({ record, startDate, endDate }) => {
+      let barStartPx: number | null = null;
+      let barLengthPx: number | null = null;
+
+      // 시작 월과 종료 월 찾기
+      const startMonthKey = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}`;
+      const endMonthKey = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, "0")}`;
+
+      const startMonthIndex = timeline.monthIndexMap[startMonthKey];
+      const endMonthIndex = timeline.monthIndexMap[endMonthKey];
+
+      if (startMonthIndex !== undefined && endMonthIndex !== undefined) {
+        const startMonth = timeline.months[startMonthIndex];
+        const endMonth = timeline.months[endMonthIndex];
+
+        // 시작 월 내에서의 위치 계산 (일 기준)
+        // 예: 11월 15일이면 11월의 (15-1)/30 = 46.7% 지점
+        const startMonthDays = endOfMonth(startMonth.startDate).getDate();
+        const startDay = startDate.getDate();
+        const startOffsetRatio = Math.max(0, Math.min(1, (startDay - 1) / startMonthDays)); // 0~1 사이의 비율
+
+        // 종료 월 내에서의 위치 계산
+        // 예: 12월 5일이면 12월의 5/31 = 16.1% 지점
+        const endMonthDays = endOfMonth(endMonth.startDate).getDate();
+        const endDay = endDate.getDate();
+        const endOffsetRatio = Math.max(0, Math.min(1, endDay / endMonthDays)); // 0~1 사이의 비율
+
+        // 픽셀 단위로 계산
+        const startPx = startMonthIndex * TIMELINE_MONTH_WIDTH + startOffsetRatio * TIMELINE_MONTH_WIDTH;
+        const endPx = endMonthIndex * TIMELINE_MONTH_WIDTH + endOffsetRatio * TIMELINE_MONTH_WIDTH;
+
+        barStartPx = startPx;
+        barLengthPx = Math.max(endPx - startPx, TIMELINE_MONTH_WIDTH * 0.1); // 최소 너비 보장
+      }
+
+      return {
+        id: record.id,
+        label: record.campaign,
+        channel: record.channel,
+        department: record.department,
+        agency: record.agency,
+        startDate: record.startDate ? new Date(record.startDate) : null,
+        endDate: record.endDate ? new Date(record.endDate) : null,
+        barStartPx,
+        barLengthPx,
+        barStartMonthIndex: startMonthIndex ?? null,
+        barEndMonthIndex: endMonthIndex ?? null,
+      };
+    });
+
+  return { rows, timeline };
 }
 
 function buildGanttData(records: ScheduleRecord[], month: Date): GanttData {
@@ -733,8 +1088,17 @@ interface ScheduleGanttProps extends GanttData {
   columnAccess: ScheduleColumnAccess;
 }
 
+interface ScheduleGanttMonthProps extends MonthGanttData {
+  columnAccess: ScheduleColumnAccess;
+}
+
 const TIMELINE_LEFT_WIDTH = 220;
+const TIMELINE_LEFT_WIDTH_MOBILE = 160;
 const TIMELINE_DAY_WIDTH = 38;
+const TIMELINE_DAY_WIDTH_MOBILE = 32;
+const TIMELINE_MONTH_WIDTH = 120;
+const TIMELINE_MONTH_WIDTH_MOBILE = 80;
+const MONTHS_TO_SHOW = 6; // 현재 달 기준 앞뒤로 표시할 달 수
 
 const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => {
   if (rows.length === 0) {
@@ -748,11 +1112,13 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
   }
 
   const timelineWidth = Math.max(timeline.totalDays * TIMELINE_DAY_WIDTH, 1);
+  const timelineWidthMobile = Math.max(timeline.totalDays * TIMELINE_DAY_WIDTH_MOBILE, 1);
   const todayColumnIndex = timeline.todayOffset;
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-xl border border-slate-200">
+      {/* Desktop Gantt View */}
+      <div className="hidden overflow-x-auto rounded-xl border border-slate-200 md:block">
         <div style={{ minWidth: TIMELINE_LEFT_WIDTH + timelineWidth }}>
           <div className="sticky top-0 z-20 border-b border-slate-200 bg-white">
             <div className="flex border-b border-slate-200">
@@ -898,6 +1264,501 @@ const ScheduleGantt = ({ rows, timeline, columnAccess }: ScheduleGanttProps) => 
                       </div>
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+                        일정 정보 없음
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Gantt View */}
+      <div className="overflow-x-auto rounded-xl border border-slate-200 md:hidden">
+        <div style={{ minWidth: TIMELINE_LEFT_WIDTH_MOBILE + timelineWidthMobile }}>
+          <div className="sticky top-0 z-20 border-b border-slate-200 bg-white">
+            <div className="flex border-b border-slate-200">
+              <div
+                className="sticky left-0 z-30 flex h-10 items-center border-r border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700"
+                style={{ width: TIMELINE_LEFT_WIDTH_MOBILE }}
+              >
+                캠페인
+              </div>
+              <div className="relative h-10" style={{ width: timelineWidthMobile }}>
+                <div className="flex h-full">
+                  {timeline.months.map((month) => (
+                    <div
+                      key={month.key}
+                      className="flex h-full items-center justify-center border-r border-slate-200 px-1 text-[10px] font-semibold text-slate-700"
+                      style={{ width: month.length * TIMELINE_DAY_WIDTH_MOBILE }}
+                    >
+                      {month.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex">
+              <div
+                className="sticky left-0 z-30 flex h-8 items-center border-r border-slate-200 bg-white px-2 text-[10px] font-medium uppercase tracking-wide text-slate-400"
+                style={{ width: TIMELINE_LEFT_WIDTH_MOBILE }}
+              >
+                일자
+              </div>
+              <div className="relative h-8" style={{ width: timelineWidthMobile }}>
+                <div className="flex h-full" aria-hidden>
+                  {timeline.days.map((day, index) => (
+                    <div
+                      key={day.key}
+                      className={cn(
+                        "flex h-full items-center justify-center border-r border-slate-200 text-[10px] font-semibold text-slate-500",
+                        index === 0 && "border-l border-slate-200",
+                        day.isWeekend && "bg-slate-50 text-slate-400",
+                        day.isToday && "text-rose-600",
+                      )}
+                      style={{ width: TIMELINE_DAY_WIDTH_MOBILE }}
+                    >
+                      {day.label}
+                    </div>
+                  ))}
+                </div>
+                {todayColumnIndex !== null ? (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-y-0.5 z-10 rounded bg-amber-100/80"
+                    style={{
+                      left: todayColumnIndex * TIMELINE_DAY_WIDTH_MOBILE,
+                      width: TIMELINE_DAY_WIDTH_MOBILE,
+                    }}
+                  />
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            {rows.map((row, rowIndex) => {
+              const variant = getColorVariant(row.channel);
+              const displayLabel = columnAccess.campaign ? row.label : "권한 없음";
+              const displayChannel = columnAccess.channel ? row.channel : "권한 없음";
+              const periodLabel =
+                columnAccess.schedule && row.startDate && row.endDate
+                  ? `${format(row.startDate, "MM.dd")} ~ ${format(row.endDate, "MM.dd")}`
+                  : "권한 없음";
+
+              const canRenderBar =
+                columnAccess.schedule &&
+                row.barStart !== null &&
+                row.barLength !== null &&
+                row.barLength > 0;
+
+              const rowBackgroundClass = rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50";
+
+              return (
+                <div key={row.id} className="flex border-b border-slate-200">
+                  <div
+                    className={cn(
+                      "sticky left-0 z-10 border-r border-slate-200 px-2 py-2 text-xs text-slate-700",
+                      rowBackgroundClass,
+                    )}
+                    style={{ width: TIMELINE_LEFT_WIDTH_MOBILE }}
+                  >
+                    <p className="font-semibold text-slate-900 line-clamp-2">{displayLabel}</p>
+                    <p className="mt-0.5 text-[10px] text-slate-500 line-clamp-1">
+                      {displayChannel}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-slate-400">{periodLabel}</p>
+                  </div>
+                  <div
+                    className={cn("relative", rowBackgroundClass)}
+                    style={{ width: timelineWidthMobile }}
+                  >
+                    <div className="flex h-full" aria-hidden>
+                      {timeline.days.map((day, index) => (
+                        <div
+                          key={`${row.id}-grid-${day.key}`}
+                          className={cn(
+                            "border-r border-slate-100",
+                            index === 0 && "border-l border-slate-100",
+                            day.isWeekend && "bg-slate-50/80",
+                          )}
+                          style={{ width: TIMELINE_DAY_WIDTH_MOBILE }}
+                        />
+                      ))}
+                    </div>
+                    {todayColumnIndex !== null ? (
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-y-0 z-20 rounded bg-amber-100/60"
+                        style={{
+                          left: todayColumnIndex * TIMELINE_DAY_WIDTH_MOBILE,
+                          width: TIMELINE_DAY_WIDTH_MOBILE,
+                        }}
+                      />
+                    ) : null}
+                    {canRenderBar ? (
+                      <div
+                        className={cn(
+                          "absolute top-1 flex h-6 items-center justify-center rounded text-[10px] font-semibold text-white shadow-sm transition",
+                          variant.barClass,
+                        )}
+                        style={{
+                          left: row.barStart! * TIMELINE_DAY_WIDTH_MOBILE + 1,
+                          width: Math.max(
+                            row.barLength! * TIMELINE_DAY_WIDTH_MOBILE - 2,
+                            TIMELINE_DAY_WIDTH_MOBILE / 2,
+                          ),
+                        }}
+                        title={`${displayLabel} | ${periodLabel}`}
+                      >
+                        <span className="sr-only">
+                          {displayLabel} 일정 {periodLabel}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-[10px] text-slate-400">
+                        일정 정보 없음
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ScheduleGanttMonth = ({ rows, timeline, columnAccess }: ScheduleGanttMonthProps) => {
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+        표시할 일정이 없습니다.
+      </div>
+    );
+  }
+
+  const timelineWidth = timeline.months.length * TIMELINE_MONTH_WIDTH;
+  const timelineWidthMobile = timeline.months.length * TIMELINE_MONTH_WIDTH_MOBILE;
+  const todayMonthIndex = timeline.todayMonthIndex;
+  
+  // Today 라인 위치 계산 (헤더용 - TIMELINE_LEFT_WIDTH 포함)
+  const todayLinePositionDesktop = todayMonthIndex !== null
+    ? todayMonthIndex * TIMELINE_MONTH_WIDTH + TIMELINE_MONTH_WIDTH / 2 + TIMELINE_LEFT_WIDTH
+    : null;
+  const todayLinePositionMobile = todayMonthIndex !== null
+    ? todayMonthIndex * TIMELINE_MONTH_WIDTH_MOBILE + TIMELINE_MONTH_WIDTH_MOBILE / 2 + TIMELINE_LEFT_WIDTH_MOBILE
+    : null;
+
+  return (
+    <div className="space-y-4">
+      {/* Desktop Month Gantt View */}
+      <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white md:block">
+        <div style={{ minWidth: TIMELINE_LEFT_WIDTH + timelineWidth }}>
+          <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/50">
+            {/* Month Row with Year Integration */}
+            <div className="flex border-b border-slate-200">
+              <div
+                className="sticky left-0 z-40 flex h-14 items-center border-r border-slate-200 bg-slate-50/50 px-4 text-sm font-semibold text-slate-900 shadow-[4px_0_10px_rgba(0,0,0,0.05)]"
+                style={{ width: TIMELINE_LEFT_WIDTH }}
+              >
+                캠페인
+              </div>
+              <div
+                className="relative h-14 overflow-hidden"
+                style={{
+                  width: timelineWidth,
+                  clipPath: `inset(0 0 0 ${TIMELINE_LEFT_WIDTH}px)`,
+                  marginLeft: `-${TIMELINE_LEFT_WIDTH}px`,
+                }}
+              >
+                <div className="flex h-full" style={{ marginLeft: `${TIMELINE_LEFT_WIDTH}px` }}>
+                  {timeline.months.map((month, index) => {
+                    const yearInfo = timeline.years.find(
+                      (y) => y.startMonthIndex <= index && index < y.startMonthIndex + y.monthCount,
+                    );
+                    const isFirstMonthOfYear = yearInfo?.startMonthIndex === index;
+                    return (
+                      <div
+                        key={month.key}
+                        className="relative z-25 flex h-full flex-col items-center justify-center border-r border-slate-100 px-2 bg-slate-50/50"
+                        style={{ width: TIMELINE_MONTH_WIDTH }}
+                      >
+                        {isFirstMonthOfYear && yearInfo ? (
+                          <span className="text-[10px] font-medium text-slate-500 leading-none">
+                            {yearInfo.year}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] leading-none" />
+                        )}
+                        <span className="mt-0.5 text-sm font-semibold text-slate-700">
+                          {month.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {todayLinePositionDesktop !== null ? (
+                  <>
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-y-0 z-30 w-0.5 bg-rose-500"
+                      style={{ left: todayLinePositionDesktop }}
+                    />
+                    <div
+                      className="pointer-events-none absolute top-0 z-30 flex items-center"
+                      style={{
+                        left: todayLinePositionDesktop,
+                        transform: "translateX(-50%)",
+                      }}
+                    >
+                      <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+                        Today
+                      </span>
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            {rows.map((row, rowIndex) => {
+              const variant = getColorVariant(row.channel);
+              const displayLabel = columnAccess.campaign ? row.label : "권한 없음";
+              const displayChannel = columnAccess.channel ? row.channel : "권한 없음";
+              const displayDepartment = columnAccess.department ? row.department : "권한 없음";
+              const displayAgency = columnAccess.agency ? row.agency : "권한 없음";
+              const periodLabel =
+                columnAccess.schedule && row.startDate && row.endDate
+                  ? `${format(row.startDate, "yyyy.MM.dd")} ~ ${format(row.endDate, "yyyy.MM.dd")}`
+                  : "권한 없음";
+
+              const canRenderBar =
+                columnAccess.schedule &&
+                row.barStartPx !== null &&
+                row.barLengthPx !== null &&
+                row.barLengthPx > 0;
+
+              const rowBackgroundClass = rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50";
+
+              return (
+                <div key={row.id} className="flex border-b border-slate-100">
+                  <div
+                    className={cn(
+                      "sticky left-0 z-10 border-r border-slate-100 bg-white px-4 py-4 shadow-[4px_0_10px_rgba(0,0,0,0.05)]",
+                      rowBackgroundClass,
+                    )}
+                    style={{ width: TIMELINE_LEFT_WIDTH }}
+                  >
+                    <p className="font-semibold text-slate-900">{displayLabel}</p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                      {displayChannel !== "권한 없음" && (
+                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">
+                          {displayChannel}
+                        </span>
+                      )}
+                      {displayDepartment !== "권한 없음" && (
+                        <span className="text-slate-500">{displayDepartment}</span>
+                      )}
+                      {displayAgency !== "권한 없음" && (
+                        <>
+                          {displayDepartment !== "권한 없음" && (
+                            <span className="text-slate-400">·</span>
+                          )}
+                          <span className="text-slate-500">{displayAgency}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    className={cn("relative overflow-hidden bg-white", rowBackgroundClass)}
+                    style={{
+                      width: timelineWidth,
+                      minHeight: "72px",
+                      clipPath: `inset(0 0 0 ${TIMELINE_LEFT_WIDTH}px)`,
+                      marginLeft: `-${TIMELINE_LEFT_WIDTH}px`,
+                    }}
+                  >
+                    {/* Today 라인은 헤더에만 표시되므로 데이터 행에서는 제거 */}
+                    {canRenderBar ? (
+                      <div
+                        className={cn(
+                          "absolute top-1/2 flex h-10 -translate-y-1/2 items-center justify-center rounded-lg text-xs font-semibold text-white transition-all",
+                          variant.barClass,
+                        )}
+                        style={{
+                          left: `${row.barStartPx!}px`,
+                          width: `${Math.max(row.barLengthPx!, TIMELINE_MONTH_WIDTH * 0.1)}px`,
+                          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
+                        }}
+                        title={`${displayLabel} | ${periodLabel}`}
+                      >
+                        <span className="sr-only">
+                          {displayLabel} 일정 {periodLabel}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+                        일정 정보 없음
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Month Gantt View */}
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white md:hidden">
+        <div style={{ minWidth: TIMELINE_LEFT_WIDTH_MOBILE + timelineWidthMobile }}>
+          <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/50">
+            {/* Month Row with Year Integration */}
+            <div className="flex border-b border-slate-200">
+              <div
+                className="sticky left-0 z-40 flex h-12 items-center border-r border-slate-200 bg-slate-50/50 px-2 text-xs font-semibold text-slate-900 shadow-[4px_0_10px_rgba(0,0,0,0.05)]"
+                style={{ width: TIMELINE_LEFT_WIDTH_MOBILE }}
+              >
+                캠페인
+              </div>
+              <div
+                className="relative h-12 overflow-hidden"
+                style={{
+                  width: timelineWidthMobile,
+                  clipPath: `inset(0 0 0 ${TIMELINE_LEFT_WIDTH_MOBILE}px)`,
+                  marginLeft: `-${TIMELINE_LEFT_WIDTH_MOBILE}px`,
+                }}
+              >
+                <div className="flex h-full" style={{ marginLeft: `${TIMELINE_LEFT_WIDTH_MOBILE}px` }}>
+                  {timeline.months.map((month, index) => {
+                    const yearInfo = timeline.years.find(
+                      (y) => y.startMonthIndex <= index && index < y.startMonthIndex + y.monthCount,
+                    );
+                    const isFirstMonthOfYear = yearInfo?.startMonthIndex === index;
+                    return (
+                      <div
+                        key={month.key}
+                        className="relative z-25 flex h-full flex-col items-center justify-center border-r border-slate-100 px-1 bg-slate-50/50"
+                        style={{ width: TIMELINE_MONTH_WIDTH_MOBILE }}
+                      >
+                        {isFirstMonthOfYear && yearInfo ? (
+                          <span className="text-[9px] font-medium text-slate-500 leading-none">
+                            {yearInfo.year}
+                          </span>
+                        ) : (
+                          <span className="text-[9px] leading-none" />
+                        )}
+                        <span className="mt-0.5 text-[10px] font-semibold text-slate-700">
+                          {month.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                  {todayLinePositionMobile !== null ? (
+                    <>
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-y-0 z-30 w-0.5 bg-rose-500"
+                        style={{ left: todayLinePositionMobile }}
+                      />
+                      <div
+                        className="pointer-events-none absolute top-0 z-30 flex items-center"
+                        style={{
+                          left: todayLinePositionMobile,
+                          transform: "translateX(-50%)",
+                        }}
+                      >
+                        <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-sm">
+                          Today
+                        </span>
+                      </div>
+                    </>
+                  ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            {rows.map((row, rowIndex) => {
+              const variant = getColorVariant(row.channel);
+              const displayLabel = columnAccess.campaign ? row.label : "권한 없음";
+              const displayChannel = columnAccess.channel ? row.channel : "권한 없음";
+              const periodLabel =
+                columnAccess.schedule && row.startDate && row.endDate
+                  ? `${format(row.startDate, "MM.dd")} ~ ${format(row.endDate, "MM.dd")}`
+                  : "권한 없음";
+
+              const canRenderBar =
+                columnAccess.schedule &&
+                row.barStartPx !== null &&
+                row.barLengthPx !== null &&
+                row.barLengthPx > 0;
+
+              const rowBackgroundClass = rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50";
+
+              // 모바일용 픽셀 계산 (비율 유지)
+              const mobileBarStartPx = row.barStartPx !== null 
+                ? (row.barStartPx / TIMELINE_MONTH_WIDTH) * TIMELINE_MONTH_WIDTH_MOBILE
+                : null;
+              const mobileBarLengthPx = row.barLengthPx !== null
+                ? (row.barLengthPx / TIMELINE_MONTH_WIDTH) * TIMELINE_MONTH_WIDTH_MOBILE
+                : null;
+
+              return (
+                <div key={row.id} className="flex border-b border-slate-100">
+                  <div
+                    className={cn(
+                      "sticky left-0 z-10 border-r border-slate-100 bg-white px-2 py-3 shadow-[4px_0_10px_rgba(0,0,0,0.05)]",
+                      rowBackgroundClass,
+                    )}
+                    style={{ width: TIMELINE_LEFT_WIDTH_MOBILE }}
+                  >
+                    <p className="font-semibold text-slate-900 line-clamp-2 text-xs">
+                      {displayLabel}
+                    </p>
+                    {displayChannel !== "권한 없음" && (
+                      <span className="mt-1.5 inline-block rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">
+                        {displayChannel}
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className={cn("relative overflow-hidden bg-white", rowBackgroundClass)}
+                    style={{
+                      width: timelineWidthMobile,
+                      minHeight: "60px",
+                      clipPath: `inset(0 0 0 ${TIMELINE_LEFT_WIDTH_MOBILE}px)`,
+                      marginLeft: `-${TIMELINE_LEFT_WIDTH_MOBILE}px`,
+                    }}
+                  >
+                    {/* Today 라인은 헤더에만 표시되므로 데이터 행에서는 제거 */}
+                    {canRenderBar && mobileBarStartPx !== null && mobileBarLengthPx !== null ? (
+                      <div
+                        className={cn(
+                          "absolute top-1/2 flex h-7 -translate-y-1/2 items-center justify-center rounded-lg text-[10px] font-semibold text-white transition-all",
+                          variant.barClass,
+                        )}
+                        style={{
+                          left: `${mobileBarStartPx}px`,
+                          width: `${Math.max(mobileBarLengthPx, TIMELINE_MONTH_WIDTH_MOBILE * 0.1)}px`,
+                          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
+                        }}
+                        title={`${displayLabel} | ${periodLabel}`}
+                      >
+                        <span className="sr-only">
+                          {displayLabel} 일정 {periodLabel}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-[10px] text-slate-400">
                         일정 정보 없음
                       </div>
                     )}

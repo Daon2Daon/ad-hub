@@ -36,10 +36,10 @@ const Page = async () => {
   const hasVisibleColumns = Object.values(columnAccess).some(Boolean);
 
   return (
-    <main className="flex min-h-screen flex-col gap-8 bg-slate-100 px-6 py-10">
-      <header className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold text-slate-900">리포트</h1>
-        <p className="text-sm text-slate-600">
+    <main className="flex min-h-screen flex-col gap-6 bg-slate-100 px-4 py-6 md:gap-8 md:px-6 md:py-10">
+      <header className="flex flex-col gap-3 md:gap-4">
+        <h1 className="text-xl font-semibold text-slate-900 md:text-2xl">리포트</h1>
+        <p className="text-xs text-slate-600 md:text-sm">
           기간, 캠페인, 매체/구분 등 다양한 조건으로 데이터를 필터링하고 결과를 CSV로 내려받을 수
           있습니다. 컬럼과 데이터는 사용자 권한에 따라 제한될 수 있습니다.
         </p>

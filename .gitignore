@@ -13,8 +13,8 @@ yarn.lock
 package-lock.json
 
 /tmp
-
 /generated/prisma
+/postgres-database/pgdata
 
 .cursor
 .npm-cache

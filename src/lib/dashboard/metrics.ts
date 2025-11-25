@@ -93,8 +93,9 @@ export function generateDashboardData(
     end: new Date(record.endDate),
   }));
 
+  // 이번 달에 종료된 광고만 집계
   const periodRecords = normalized
-    .filter(({ start, end }) => overlaps(range, start, end))
+    .filter(({ end }) => isWithinInterval(end, range))
     .map(({ record }) => record);
 
   const yearlyScopedRecords = normalized

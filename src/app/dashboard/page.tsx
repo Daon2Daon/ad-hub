@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 
-import { DateRangeSummary } from "@/components/dashboard/DateRangeSummary";
 import { DistributionCard } from "@/components/dashboard/DistributionCard";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { createDefaultAccessProfile } from "@/lib/auth/profile";
@@ -31,13 +30,9 @@ const Page = async () => {
   });
 
   return (
-    <main className="flex min-h-screen flex-col gap-8 bg-slate-100 px-6 py-10">
-      <header className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold text-slate-900">대시보드</h1>
-        <p className="text-sm text-slate-600">
-          기본 기간(이번 달) 데이터를 표기합니다. 추후 커스텀 기간 선택 기능을 추가합니다.
-        </p>
-        <DateRangeSummary label="기본 기간" range={dashboard.range} />
+    <main className="flex min-h-screen flex-col gap-6 bg-slate-100 px-4 py-6 md:gap-8 md:px-6 md:py-10">
+      <header className="flex flex-col gap-3 md:gap-4">
+        <h1 className="text-xl font-semibold text-slate-900 md:text-2xl">대시보드</h1>
       </header>
 
       {records.length === 0 ? (
@@ -49,11 +44,11 @@ const Page = async () => {
         <>
           <section className="grid gap-6 md:grid-cols-3">
             <KpiCard
-              title="집행중인 광고 (건)"
+              title="현재 집행중인 광고 (건)"
               value={`${dashboard.kpis.activeCampaigns.toLocaleString("ko-KR")} 건`}
             />
             <KpiCard
-              title="선택 기간 광고비 (원)"
+              title="이번 달 광고비 (원)"
               value={
                 dashboard.kpis.periodSpend !== null
                   ? currencyFormatter.format(dashboard.kpis.periodSpend)
@@ -71,8 +66,8 @@ const Page = async () => {
           </section>
 
           <section className="grid gap-6 lg:grid-cols-2">
-            <DistributionCard title="선택 기간 소재별 광고 비중" slices={dashboard.byCreative} />
-            <DistributionCard title="선택 기간 대행사별 광고 비중" slices={dashboard.byAgency} />
+            <DistributionCard title="이번 달 소재별 광고 비중" slices={dashboard.byCreative} />
+            <DistributionCard title="이번 달 대행사별 광고 비중" slices={dashboard.byAgency} />
           </section>
         </>
       )}

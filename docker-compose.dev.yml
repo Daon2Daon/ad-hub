@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  # PostgreSQL 데이터베이스 서비스 (로컬 개발용)
+  postgres:
+    image: postgres:15-alpine
+    container_name: adhub-database-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: adhub
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      # 로컬 개발용 포트: 5432
+      - "5432:5432"
+    volumes:
+      # 로컬 개발용: 프로젝트 루트의 postgres-database 폴더 사용
+      - ./postgres-database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+

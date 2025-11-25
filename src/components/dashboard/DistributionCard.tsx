@@ -32,16 +32,16 @@ export const DistributionCard = ({
 
   if (slices.length === 0 || total === 0) {
     return (
-      <section className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <header className="mb-4 flex items-center justify-between">
-          <h2 id={cardTitleId} className="text-lg font-semibold text-slate-900">
+      <section className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+        <header className="mb-3 flex items-center justify-between md:mb-4">
+          <h2 id={cardTitleId} className="text-base font-semibold text-slate-900 md:text-lg">
             {title}
           </h2>
           <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
             도넛 차트
           </span>
         </header>
-        <p className="text-sm text-slate-500">{emptyMessage}</p>
+        <p className="text-xs text-slate-500 md:text-sm">{emptyMessage}</p>
       </section>
     );
   }
@@ -67,16 +67,16 @@ export const DistributionCard = ({
   });
 
   return (
-    <section className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <header className="mb-4 flex items-center justify-between">
-        <h2 id={cardTitleId} className="text-lg font-semibold text-slate-900">
+    <section className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+      <header className="mb-3 flex items-center justify-between md:mb-4">
+        <h2 id={cardTitleId} className="text-base font-semibold text-slate-900 md:text-lg">
           {title}
         </h2>
       </header>
 
-      <div className="flex flex-col gap-6 md:flex-row md:items-center">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
         <figure
-          className="mx-auto flex h-48 w-48 flex-col items-center justify-center md:mx-0"
+          className="mx-auto flex h-40 w-40 flex-col items-center justify-center md:h-48 md:w-48 md:mx-0"
           role="img"
           aria-labelledby={cardTitleId}
           aria-describedby={descriptionId}
@@ -98,7 +98,7 @@ export const DistributionCard = ({
               />
             ))}
           </svg>
-          <figcaption className="mt-2 text-center text-sm text-slate-500" id={descriptionId}>
+          <figcaption className="mt-2 text-center text-xs text-slate-500 md:text-sm" id={descriptionId}>
             총 {currencyFormatter.format(total)}
           </figcaption>
         </figure>
@@ -107,20 +107,26 @@ export const DistributionCard = ({
           {formattedSlices.map((slice) => (
             <li
               key={slice.label}
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3"
+              className="flex flex-col gap-2 sm:grid sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:items-center sm:gap-3"
             >
-              <span
-                aria-hidden
-                className="block h-3 w-3 rounded-full"
-                style={{ backgroundColor: slice.color }}
-              />
-              <span className="text-sm text-slate-600">{slice.label}</span>
-              <span className="min-w-[6.5rem] text-right text-sm font-semibold tabular-nums text-slate-900">
-                {currencyFormatter.format(slice.value)}
-              </span>
-              <span className="min-w-[3.5rem] text-right text-xs font-medium tabular-nums text-slate-400">
-                {percentageFormatter.format(slice.ratio)}
-              </span>
+              <div className="flex items-center gap-2 sm:contents">
+                <span
+                  aria-hidden
+                  className="block h-3 w-3 flex-shrink-0 rounded-full sm:h-3 sm:w-3"
+                  style={{ backgroundColor: slice.color }}
+                />
+                <span className="text-sm font-medium text-slate-700 sm:text-sm sm:font-normal sm:text-slate-600">
+                  {slice.label}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 sm:contents">
+                <span className="text-base font-semibold tabular-nums text-slate-900 sm:min-w-[6.5rem] sm:text-right sm:text-sm">
+                  {currencyFormatter.format(slice.value)}
+                </span>
+                <span className="text-sm font-medium tabular-nums text-slate-500 sm:min-w-[3.5rem] sm:text-right sm:text-xs sm:text-slate-400">
+                  {percentageFormatter.format(slice.ratio)}
+                </span>
+              </div>
             </li>
           ))}
         </ol>

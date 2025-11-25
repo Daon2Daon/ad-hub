@@ -332,9 +332,9 @@ export const ReportPageClient = ({
   const hasColumnVisibility = visibleColumns.length > 0;
 
   return (
-    <section className="flex flex-col gap-6">
+    <section className="flex flex-col gap-4 md:gap-6">
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+        <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3 md:px-6 md:py-4">
           <button
             type="button"
             onClick={() => setIsFilterOpen((prev) => !prev)}
@@ -360,7 +360,7 @@ export const ReportPageClient = ({
         </header>
 
         {isFilterOpen ? (
-          <form className="flex flex-col gap-8 px-6 py-6" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-6 px-4 py-4 md:gap-8 md:px-6 md:py-6" onSubmit={handleSubmit}>
             <section className="space-y-5">
               <h3 className="text-sm font-semibold text-slate-700">기간</h3>
               <div className="flex flex-col gap-6 lg:flex-row">
@@ -459,8 +459,8 @@ export const ReportPageClient = ({
         ) : null}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <header className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+        <header className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between md:mb-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">조회 결과</h2>
             <p className="text-sm text-slate-500">
@@ -514,43 +514,80 @@ export const ReportPageClient = ({
             선택한 조건에 해당하는 데이터가 없습니다. 필터를 조정해 다시 조회해보세요.
           </section>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50">
-                <tr>
-                  {visibleColumns.map((column) => (
-                    <th
-                      key={column.key}
-                      scope="col"
-                      className={cn(
-                        "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500",
-                        column.align === "right" && "text-right",
-                      )}
-                    >
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 bg-white">
-                {filteredRows.map((row) => (
-                  <tr key={row.id} className="transition hover:bg-slate-50">
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
                     {visibleColumns.map((column) => (
-                      <td
-                        key={`${row.id}-${column.key}`}
+                      <th
+                        key={column.key}
+                        scope="col"
                         className={cn(
-                          "px-4 py-3 text-sm text-slate-700",
+                          "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500",
                           column.align === "right" && "text-right",
                         )}
                       >
-                        {column.render(row)}
-                      </td>
+                        {column.label}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-white">
+                  {filteredRows.map((row) => (
+                    <tr key={row.id} className="transition hover:bg-slate-50">
+                      {visibleColumns.map((column) => (
+                        <td
+                          key={`${row.id}-${column.key}`}
+                          className={cn(
+                            "px-4 py-3 text-sm text-slate-700",
+                            column.align === "right" && "text-right",
+                          )}
+                        >
+                          {column.render(row)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="space-y-3 md:hidden">
+              {filteredRows.map((row) => (
+                <div
+                  key={row.id}
+                  className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300"
+                >
+                  <div className="space-y-3">
+                    {visibleColumns.map((column) => {
+                      const value = column.render(row);
+                      if (value === "권한 없음" || !value) {
+                        return null;
+                      }
+                      return (
+                        <div key={column.key} className="flex flex-col gap-1">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            {column.label}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-sm text-slate-700 break-words",
+                              column.align === "right" && "text-right",
+                            )}
+                          >
+                            {value}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </section>
