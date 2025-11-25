@@ -921,7 +921,7 @@ const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 const ScheduleCalendar = ({ days, month, schedulesByDay, columnAccess }: ScheduleCalendarProps) => {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-7 gap-2 text-center text-xs font-medium text-slate-500">
+      <div className="hidden grid-cols-7 gap-2 text-center text-xs font-medium text-slate-500 lg:grid">
         {WEEKDAY_LABELS.map((label) => (
           <div key={label} className="py-2">
             {label}
@@ -929,7 +929,7 @@ const ScheduleCalendar = ({ days, month, schedulesByDay, columnAccess }: Schedul
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-2">
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-7 lg:gap-2">
         {days.map((day) => {
           const key = format(day, "yyyy-MM-dd");
           const schedules = schedulesByDay[key];
@@ -939,14 +939,22 @@ const ScheduleCalendar = ({ days, month, schedulesByDay, columnAccess }: Schedul
             <div
               key={key}
               className={cn(
-                "flex min-h-[130px] flex-col gap-2 rounded-lg border p-2 text-left text-xs",
+                "flex flex-col gap-2 rounded-lg border p-2 text-left text-xs",
+                "min-h-[100px] lg:min-h-[130px]",
                 isCurrentMonth
                   ? "border-slate-200 bg-white"
-                  : "border-slate-100 bg-slate-50 text-slate-400",
+                  : "hidden border-slate-100 bg-slate-50 text-slate-400 lg:flex",
               )}
             >
               <header className="flex items-center justify-between text-[11px] font-medium text-slate-500">
-                <span className={cn(!isCurrentMonth && "text-slate-400")}>{format(day, "d")}</span>
+                <div className="flex items-center gap-2">
+                  <span className={cn(!isCurrentMonth && "text-slate-400", "lg:hidden")}>
+                    {format(day, "M월 d일")} ({WEEKDAY_LABELS[day.getDay()]})
+                  </span>
+                  <span className={cn(!isCurrentMonth && "text-slate-400", "hidden lg:inline")}>
+                    {format(day, "d")}
+                  </span>
+                </div>
                 {schedules?.length ? (
                   <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white">
                     {schedules.length}

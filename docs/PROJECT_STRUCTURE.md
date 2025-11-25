@@ -447,3 +447,4 @@ SEED_ADMIN_PASSWORD="admin123"
 
 **마지막 업데이트**: 2025-01-15
 
+

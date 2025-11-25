@@ -620,7 +620,7 @@ export const ManagementPageClient = ({
   return (
     <section className="flex flex-col gap-6">
       <header className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -635,32 +635,34 @@ export const ManagementPageClient = ({
             >
               신규 등록
             </button>
-            <button
-              type="button"
-              onClick={() => setBulkUpdateOpen(true)}
-              disabled={!canBulkUpdate || selectedIds.size === 0}
-              className={cn(
-                "rounded-lg px-4 py-2 text-sm font-semibold transition",
-                canBulkUpdate && selectedIds.size > 0
-                  ? "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
-                  : "cursor-not-allowed bg-slate-200 text-slate-500",
-              )}
-            >
-              일괄 변경
-            </button>
-            <button
-              type="button"
-              onClick={() => openDeleteModal(Array.from(selectedIds))}
-              disabled={selectedIds.size === 0}
-              className={cn(
-                "rounded-lg px-4 py-2 text-sm font-semibold transition",
-                selectedIds.size > 0
-                  ? "bg-rose-600 text-white hover:bg-rose-500"
-                  : "cursor-not-allowed bg-slate-200 text-slate-500",
-              )}
-            >
-              일괄 삭제
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setBulkUpdateOpen(true)}
+                disabled={!canBulkUpdate || selectedIds.size === 0}
+                className={cn(
+                  "rounded-lg px-4 py-2 text-sm font-semibold transition",
+                  canBulkUpdate && selectedIds.size > 0
+                    ? "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+                    : "cursor-not-allowed bg-slate-200 text-slate-500",
+                )}
+              >
+                일괄 변경
+              </button>
+              <button
+                type="button"
+                onClick={() => openDeleteModal(Array.from(selectedIds))}
+                disabled={selectedIds.size === 0}
+                className={cn(
+                  "rounded-lg px-4 py-2 text-sm font-semibold transition",
+                  selectedIds.size > 0
+                    ? "bg-rose-600 text-white hover:bg-rose-500"
+                    : "cursor-not-allowed bg-slate-200 text-slate-500",
+                )}
+              >
+                일괄 삭제
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
