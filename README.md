@@ -4,6 +4,22 @@
 - 목표: 광고주의 광고 집행 현황, 비용, 스케줄을 중앙에서 관리하고 리포팅하는 웹 서비스 구축 (MVP+)
 - 기술 스택 (권장): Next.js, TypeScript, Next-Auth (인증), Zustand/Recoil (상태관리), SWR/React-Query (데이터 페칭), PostgreSQL/MySQL (DB), Prisma (ORM)
 
+# 빠른 시작 (Quick Start)
+
+1.  **환경 변수 설정**: `.env.example` 파일을 복사하여 `.env` 파일을 생성하고, `DATABASE_URL` 및 `NEXTAUTH_SECRET` 등 필수 변수를 설정합니다.
+2.  **데이터베이스 마이그레이션**: 다음 명령어를 실행하여 데이터베이스 스키마를 최신 상태로 업데이트합니다.
+    ```bash
+    npx prisma migrate deploy
+    ```
+3.  **데이터베이스 시딩**: 다음 명령어를 실행하여 초기 관리자 계정과 샘플 데이터를 생성합니다.
+    ```bash
+    npm run prisma:seed
+    ```
+4.  **개발 서버 실행**: 다음 명령어를 실행하여 개발 서버를 시작합니다.
+    ```bash
+    npm run dev
+    ```
+
 # 1. 글로벌 및 공통 요구사항
 
 ## 1.1. 사용자 역할 (Roles)
