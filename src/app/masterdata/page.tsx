@@ -1,23 +1,13 @@
 import { redirect } from "next/navigation";
 
 import { MasterDataPageClient } from "@/components/master-data/MasterDataPageClient";
-import { createDefaultAccessProfile } from "@/lib/auth/profile";
-import { getServerAuthSession } from "@/lib/auth/session";
+import { requireActiveSession } from "@/lib/auth/session";
 import { fetchMasterDataItems } from "@/lib/master-data/repository";
 import { MASTER_DATA_CATEGORY_META, MASTER_DATA_CATEGORIES } from "@/types/master-data";
 
 const Page = async () => {
-  const session = await getServerAuthSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (session.user.status !== "active") {
-    redirect("/login?status=pending");
-  }
-
-  const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+  const session = await requireActiveSession();
+  const profile = session.accessProfile;
 
   if (profile.role !== "admin") {
     redirect("/dashboard");

@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  prismaListenerRegistered?: boolean;
 };
 
 /**
@@ -22,8 +23,9 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // 애플리케이션 종료 시 Prisma 클라이언트 정리
-if (typeof window === "undefined") {
-  process.on("beforeExit", async () => {
+if (typeof window === "undefined" && !globalForPrisma.prismaListenerRegistered) {
+  process.once("beforeExit", async () => {
     await prisma.$disconnect();
   });
+  globalForPrisma.prismaListenerRegistered = true;
 }

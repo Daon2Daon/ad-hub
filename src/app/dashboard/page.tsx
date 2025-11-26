@@ -1,25 +1,13 @@
-import { redirect } from "next/navigation";
-
 import { DistributionCard } from "@/components/dashboard/DistributionCard";
 import { KpiCard } from "@/components/dashboard/KpiCard";
-import { createDefaultAccessProfile } from "@/lib/auth/profile";
-import { getServerAuthSession } from "@/lib/auth/session";
+import { requireActiveSession } from "@/lib/auth/session";
 import { generateDashboardData } from "@/lib/dashboard/metrics";
 import { fetchCampaignRecords } from "@/lib/dashboard/repository";
 
 const Page = async () => {
-  const session = await getServerAuthSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (session.user.status !== "active") {
-    redirect("/login?status=pending");
-  }
-
-  const records = await fetchCampaignRecords();
-  const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+  const session = await requireActiveSession();
+  const profile = session.accessProfile;
+  const records = await fetchCampaignRecords(profile);
 
   const dashboard = generateDashboardData(records, profile);
 

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createDefaultAccessProfile } from "@/lib/auth/profile";
-import { getServerAuthSession } from "@/lib/auth/session";
+import { requireActiveSession } from "@/lib/auth/session";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/prisma";
 import { actionClient } from "@/lib/safe-action";
@@ -16,26 +16,14 @@ import {
 import type { SystemUser } from "@/types/system";
 import type { ColumnKey } from "@/types/auth";
 
-/**
- * Admin 권한 확인 헬퍼 함수
- * @throws {Error} 세션이 없거나 Admin이 아닌 경우
- */
-function ensureAdmin(
-  session: Awaited<ReturnType<typeof getServerAuthSession>>,
-): asserts session is NonNullable<Awaited<ReturnType<typeof getServerAuthSession>>> & {
-  user: { role: "admin" };
-} {
-  if (!session) {
-    throw new Error("로그인이 필요합니다.");
-  }
-
-  if (session.user.status !== "active") {
-    throw new Error("승인된 사용자만 이용할 수 있습니다.");
-  }
+async function requireAdminSession() {
+  const session = await requireActiveSession();
 
   if (session.user.role !== "admin") {
     throw new Error("관리자 권한이 필요합니다.");
   }
+
+  return session;
 }
 
 /**
@@ -62,15 +50,7 @@ const changePasswordSchema = z
 export const changePasswordAction = actionClient
   .schema(changePasswordSchema)
   .action(async ({ parsedInput }) => {
-    const session = await getServerAuthSession();
-
-    if (!session) {
-      throw new Error("로그인이 필요합니다.");
-    }
-
-    if (session.user.status !== "active") {
-      throw new Error("승인된 사용자만 이용할 수 있습니다.");
-    }
+    const session = await requireActiveSession();
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -119,8 +99,7 @@ const getUserListSchema = z.object({
 export async function getUserList(
   status?: "pending" | "active" | "suspended",
 ): Promise<SystemUser[]> {
-  const session = await getServerAuthSession();
-  ensureAdmin(session);
+  await requireAdminSession();
 
   const where = status ? { status } : {};
 
@@ -181,8 +160,7 @@ const approveUserSchema = z.object({
 export const approveUserAction = actionClient
   .schema(approveUserSchema)
   .action(async ({ parsedInput }) => {
-    const session = await getServerAuthSession();
-    ensureAdmin(session);
+    const session = await requireAdminSession();
 
     const user = await prisma.user.findUnique({
       where: { id: parsedInput.userId },
@@ -269,8 +247,7 @@ const resetPasswordSchema = z.object({
 export const resetPasswordAction = actionClient
   .schema(resetPasswordSchema)
   .action(async ({ parsedInput }) => {
-    const session = await getServerAuthSession();
-    ensureAdmin(session);
+    const session = await requireAdminSession();
 
     const targetUser = await prisma.user.findUnique({
       where: { id: parsedInput.userId },
@@ -315,8 +292,7 @@ const updatePermissionsSchema = z.object({
 export const updatePermissionsAction = actionClient
   .schema(updatePermissionsSchema)
   .action(async ({ parsedInput }) => {
-    const session = await getServerAuthSession();
-    ensureAdmin(session);
+    const session = await requireAdminSession();
 
     const targetUser = await prisma.user.findUnique({
       where: { id: parsedInput.userId },
@@ -374,8 +350,7 @@ const deleteUserSchema = z.object({
 export const deleteUserAction = actionClient
   .schema(deleteUserSchema)
   .action(async ({ parsedInput }) => {
-    const session = await getServerAuthSession();
-    ensureAdmin(session);
+    const session = await requireAdminSession();
 
     const targetUser = await prisma.user.findUnique({
       where: { id: parsedInput.userId },

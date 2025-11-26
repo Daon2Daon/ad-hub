@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import type { ActivityLogType } from "@prisma/client";
 
 import { LogsPageClient } from "@/components/logs/LogsPageClient";
-import { createDefaultAccessProfile } from "@/lib/auth/profile";
-import { getServerAuthSession } from "@/lib/auth/session";
+import { requireActiveSession } from "@/lib/auth/session";
 import { fetchActivityLogs } from "@/lib/logs/repository";
 
 interface PageProps {
@@ -17,17 +16,8 @@ interface PageProps {
 }
 
 const Page = async ({ searchParams }: PageProps) => {
-  const session = await getServerAuthSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (session.user.status !== "active") {
-    redirect("/login?status=pending");
-  }
-
-  const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+  const session = await requireActiveSession();
+  const profile = session.accessProfile;
 
   if (profile.role !== "admin") {
     redirect("/dashboard");

@@ -43,8 +43,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# [추가] PostgreSQL 클라이언트 설치 (pg_isready 사용을 위해)
-RUN apk add --no-cache postgresql-client
+# [추가] PostgreSQL 클라이언트 및 curl 설치
+# postgresql-client: pg_isready 사용을 위해
+# curl: healthcheck에서 사용하기 위해
+RUN apk add --no-cache postgresql-client curl
 
 # 1. 필수 파일 복사
 COPY --from=prisma /app/node_modules/.prisma ./node_modules/.prisma

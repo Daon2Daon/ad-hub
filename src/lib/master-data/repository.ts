@@ -1,9 +1,12 @@
 import { Prisma } from "@prisma/client";
+import { revalidateTag, unstable_cache } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import type { MasterDataCategory, MasterDataItem } from "@/types/master-data";
 
-export async function fetchMasterDataItems(): Promise<
+export const MASTER_DATA_CACHE_TAG = "master-data-items";
+
+async function fetchMasterDataItemsUncached(): Promise<
   Record<MasterDataCategory, MasterDataItem[]>
 > {
   const records = await prisma.masterDataItem.findMany({
@@ -36,6 +39,16 @@ export async function fetchMasterDataItems(): Promise<
   );
 }
 
+export const fetchMasterDataItems = unstable_cache(
+  fetchMasterDataItemsUncached,
+  ["master-data-items"],
+  { tags: [MASTER_DATA_CACHE_TAG] },
+);
+
+export function revalidateMasterDataCache() {
+  revalidateTag(MASTER_DATA_CACHE_TAG);
+}
+
 export async function createMasterDataItem(params: {
   category: MasterDataCategory;
   value: string;
@@ -47,13 +60,16 @@ export async function createMasterDataItem(params: {
     },
   });
 
-  return {
+  const result: MasterDataItem = {
     id: created.id,
     category: created.category as MasterDataCategory,
     value: created.value,
     createdAt: created.createdAt.toISOString(),
     updatedAt: created.updatedAt.toISOString(),
   };
+
+  revalidateMasterDataCache();
+  return result;
 }
 
 export async function updateMasterDataItem(params: {
@@ -68,19 +84,24 @@ export async function updateMasterDataItem(params: {
     },
   });
 
-  return {
+  const result: MasterDataItem = {
     id: updated.id,
     category: updated.category as MasterDataCategory,
     value: updated.value,
     createdAt: updated.createdAt.toISOString(),
     updatedAt: updated.updatedAt.toISOString(),
   };
+
+  revalidateMasterDataCache();
+  return result;
 }
 
 export async function deleteMasterDataItem(id: string): Promise<void> {
   await prisma.masterDataItem.delete({
     where: { id },
   });
+
+  revalidateMasterDataCache();
 }
 
 export async function ensureMasterDataValueExists(

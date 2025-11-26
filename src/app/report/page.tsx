@@ -1,9 +1,5 @@
-import { redirect } from "next/navigation";
-
 import { ReportPageClient } from "@/components/report/ReportPageClient";
-import { createDefaultAccessProfile } from "@/lib/auth/profile";
-import { getServerAuthSession } from "@/lib/auth/session";
-import { filterRowsByScope } from "@/lib/auth/permissions";
+import { requireActiveSession } from "@/lib/auth/session";
 import { fetchCampaignRecords } from "@/lib/dashboard/repository";
 import {
   buildReportColumnAccess,
@@ -13,25 +9,14 @@ import {
 } from "@/lib/report/utils";
 
 const Page = async () => {
-  const session = await getServerAuthSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (session.user.status !== "active") {
-    redirect("/login?status=pending");
-  }
-
-  const records = await fetchCampaignRecords();
-  const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+  const session = await requireActiveSession();
+  const profile = session.accessProfile;
+  const records = await fetchCampaignRecords(profile);
   const columnAccess = buildReportColumnAccess(profile);
 
-  const scopedRecords = filterRowsByScope(records, profile);
-
-  const rows = scopedRecords.map((record) => toReportRow(record, columnAccess));
-  const options = buildReportOptions(scopedRecords, columnAccess);
-  const summary = buildReportSummary(scopedRecords, columnAccess);
+  const rows = records.map((record) => toReportRow(record, columnAccess));
+  const options = buildReportOptions(records, columnAccess);
+  const summary = buildReportSummary(records, columnAccess);
 
   const hasVisibleColumns = Object.values(columnAccess).some(Boolean);
 
@@ -50,7 +35,7 @@ const Page = async () => {
           열람 가능한 컬럼 권한이 없어 리포트 데이터를 확인할 수 없습니다. 관리자에게 컬럼 접근
           권한을 요청해주세요.
         </section>
-      ) : scopedRecords.length === 0 ? (
+      ) : records.length === 0 ? (
         <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
           표시할 데이터가 없습니다. 캠페인 데이터를 등록하거나 승인된 데이터 범위를 확인하세요.
         </section>

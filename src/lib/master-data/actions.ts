@@ -1,16 +1,16 @@
 "use server";
 
 import { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
-import { createDefaultAccessProfile } from "@/lib/auth/profile";
-import { getServerAuthSession } from "@/lib/auth/session";
+import { requireActiveSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { actionClient } from "@/lib/safe-action";
 import {
   createMasterDataItem,
   deleteMasterDataItem,
+  MASTER_DATA_CACHE_TAG,
 } from "@/lib/master-data/repository";
 import type { MasterDataCategory, MasterDataItem } from "@/types/master-data";
 
@@ -45,22 +45,13 @@ const deleteSchema = z.object({
   id: z.string().uuid("유효한 ID가 아닙니다."),
 });
 
-function ensureAdmin(session: Awaited<ReturnType<typeof getServerAuthSession>>) {
-  if (!session) {
-    throw new Error("로그인이 필요합니다.");
-  }
-
-  if (session.user.status !== "active") {
-    throw new Error("승인된 사용자만 이용할 수 있습니다.");
-  }
-
-  const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+async function ensureAdmin() {
+  const session = await requireActiveSession();
+  const profile = session.accessProfile;
 
   if (profile.role !== "admin") {
     throw new Error("관리자 권한이 필요합니다.");
   }
-
-  return profile;
 }
 
 function revalidateMasterDataPaths() {
@@ -68,6 +59,7 @@ function revalidateMasterDataPaths() {
   // 캠페인 데이터를 사용하는 다른 페이지들도 재검증
   revalidatePath("/dashboard");
   revalidatePath("/report");
+  revalidateTag(MASTER_DATA_CACHE_TAG);
 }
 
 /**
@@ -100,8 +92,7 @@ async function hasRelatedCampaigns(category: MasterDataCategory, value: string):
 export const createMasterDataItemAction = actionClient
   .schema(createSchema)
   .action(async ({ parsedInput }): Promise<{ item: MasterDataItem }> => {
-    const session = await getServerAuthSession();
-    ensureAdmin(session);
+    await ensureAdmin();
 
     try {
       const item = await createMasterDataItem(parsedInput);
@@ -118,8 +109,7 @@ export const createMasterDataItemAction = actionClient
 export const updateMasterDataItemAction = actionClient
   .schema(updateSchema)
   .action(async ({ parsedInput }): Promise<{ item: MasterDataItem; updatedCampaigns: number }> => {
-    const session = await getServerAuthSession();
-    ensureAdmin(session);
+    await ensureAdmin();
 
     try {
       // 기존 마스터 데이터 조회 (업데이트 전 값 확인)
@@ -189,8 +179,7 @@ export const updateMasterDataItemAction = actionClient
 export const deleteMasterDataItemAction = actionClient
   .schema(deleteSchema)
   .action(async ({ parsedInput }): Promise<{ id: string }> => {
-    const session = await getServerAuthSession();
-    ensureAdmin(session);
+    await ensureAdmin();
 
     // 삭제 전에 해당 마스터 데이터 조회
     const existing = await prisma.masterDataItem.findUnique({

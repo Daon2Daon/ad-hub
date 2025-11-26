@@ -1,20 +1,12 @@
 import { redirect } from "next/navigation";
 
-import { getServerAuthSession } from "@/lib/auth/session";
+import { requireActiveSession } from "@/lib/auth/session";
 import { fetchMasterDataItems } from "@/lib/master-data/repository";
 import { SystemPageClient } from "@/components/system/SystemPageClient";
 import { getUserList } from "@/lib/system/actions";
 
 const Page = async () => {
-  const session = await getServerAuthSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (session.user.status !== "active") {
-    redirect("/dashboard");
-  }
+  const session = await requireActiveSession({ pendingRedirectTo: "/dashboard" });
 
   if (session.user.role !== "admin") {
     redirect("/dashboard");

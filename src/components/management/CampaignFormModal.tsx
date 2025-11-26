@@ -49,6 +49,7 @@ export interface CampaignFormModalProps {
   options: ManagementOptions;
   isSubmitting: boolean;
   fieldErrors?: Partial<Record<keyof CampaignFormState, string>>;
+  errorMessage?: string | null;
 }
 
 export const CampaignFormModal = ({
@@ -63,6 +64,7 @@ export const CampaignFormModal = ({
   options,
   isSubmitting,
   fieldErrors = {},
+  errorMessage,
 }: CampaignFormModalProps) => {
   if (!open) {
     return null;
@@ -105,6 +107,11 @@ export const CampaignFormModal = ({
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 md:space-y-5 md:px-6 md:py-6">
+            {errorMessage ? (
+              <p className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-600">
+                {errorMessage}
+              </p>
+            ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             {columnAccess.campaign ? (
               <Field

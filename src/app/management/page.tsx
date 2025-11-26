@@ -1,9 +1,5 @@
-import { redirect } from "next/navigation";
-
 import { ManagementPageClient } from "@/components/management/ManagementPageClient";
-import { filterRowsByScope } from "@/lib/auth/permissions";
-import { createDefaultAccessProfile } from "@/lib/auth/profile";
-import { getServerAuthSession } from "@/lib/auth/session";
+import { requireActiveSession } from "@/lib/auth/session";
 import { fetchCampaignRecords } from "@/lib/dashboard/repository";
 import {
   buildManagementColumnAccess,
@@ -13,31 +9,19 @@ import {
 import { fetchMasterDataItems } from "@/lib/master-data/repository";
 
 const Page = async () => {
-  const session = await getServerAuthSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (session.user.status !== "active") {
-    redirect("/login?status=pending");
-  }
-
-  const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+  const session = await requireActiveSession();
+  const profile = session.accessProfile;
   const columnAccess = buildManagementColumnAccess(profile);
 
   const [campaigns, masterData] = await Promise.all([
-    fetchCampaignRecords(),
+    fetchCampaignRecords(profile),
     fetchMasterDataItems(),
   ]);
-  const scopedRecords = filterRowsByScope(campaigns, profile);
 
-  const rows = scopedRecords.map((record) => toManagementRow(record, columnAccess));
+  const rows = campaigns.map((record) => toManagementRow(record, columnAccess));
   const options = buildManagementOptionsFromMasterData(masterData, columnAccess);
 
-  const totalSpend = columnAccess.spend
-    ? scopedRecords.reduce((acc, record) => acc + record.spend, 0)
-    : null;
+  const totalSpend = columnAccess.spend ? campaigns.reduce((acc, record) => acc + record.spend, 0) : null;
 
   const hasVisibleColumns = Object.values(columnAccess).some((value) => value);
 

@@ -1,11 +1,10 @@
 "use server";
 
 import { Prisma, type Campaign } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
-import { createDefaultAccessProfile } from "@/lib/auth/profile";
-import { getServerAuthSession } from "@/lib/auth/session";
+import { requireActiveSession } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
 import { logDataCreate, logDataDelete, logDataUpdate, logExcelUpload } from "@/lib/logs/logger";
 import { actionClient } from "@/lib/safe-action";
@@ -23,6 +22,7 @@ import {
   type ParsedCampaignRow,
 } from "@/lib/management/csv";
 import { MASTER_DATA_CATEGORY_LABELS, MAX_CSV_FILE_SIZE } from "@/lib/management/constants";
+import { MASTER_DATA_CACHE_TAG } from "@/lib/master-data/repository";
 import type { MasterDataCategory } from "@/types/master-data";
 import type { UserAccessProfile } from "@/types/auth";
 import type { CampaignRecord } from "@/types/dashboard";
@@ -214,7 +214,7 @@ async function createMasterDataValuesBatch(
         isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
       },
     );
-  } catch (error) {
+  } catch {
     // 트랜잭션 실패 시 개별 처리로 폴백
     for (const { category, value } of toCreate) {
       try {
@@ -311,17 +311,8 @@ async function assertMasterDataValues(
 export const createCampaignAction = actionClient
   .schema(createCampaignSchema)
   .action(async ({ parsedInput }) => {
-    const session = await getServerAuthSession();
-
-    if (!session) {
-      throw new Error("로그인이 필요합니다.");
-    }
-
-    if (session.user.status !== "active") {
-      throw new Error("승인된 사용자만 데이터를 등록할 수 있습니다.");
-    }
-
-    const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+    const session = await requireActiveSession();
+    const profile = session.accessProfile;
     const columnAccess = buildManagementColumnAccess(profile);
 
     const requiredColumns: (keyof typeof columnAccess)[] = [
@@ -405,6 +396,7 @@ export const createCampaignAction = actionClient
     // 마스터 데이터가 자동 생성된 경우 관련 경로도 재검증
     if (autoCreated.length > 0) {
       revalidatePath("/masterdata");
+      revalidateTag(MASTER_DATA_CACHE_TAG);
     }
 
     return {
@@ -417,17 +409,8 @@ export const createCampaignAction = actionClient
 export const updateCampaignAction = actionClient
   .schema(updateCampaignSchema)
   .action(async ({ parsedInput }) => {
-    const session = await getServerAuthSession();
-
-    if (!session) {
-      throw new Error("로그인이 필요합니다.");
-    }
-
-    if (session.user.status !== "active") {
-      throw new Error("승인된 사용자만 데이터를 수정할 수 있습니다.");
-    }
-
-    const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+    const session = await requireActiveSession();
+    const profile = session.accessProfile;
     const columnAccess = buildManagementColumnAccess(profile);
 
     const existing = await prisma.campaign.findUnique({ where: { id: parsedInput.id } });
@@ -549,17 +532,8 @@ export const updateCampaignAction = actionClient
 export const bulkUpdateCampaignsAction = actionClient
   .schema(bulkUpdateSchema)
   .action(async ({ parsedInput }) => {
-    const session = await getServerAuthSession();
-
-    if (!session) {
-      throw new Error("로그인이 필요합니다.");
-    }
-
-    if (session.user.status !== "active") {
-      throw new Error("승인된 사용자만 데이터를 수정할 수 있습니다.");
-    }
-
-    const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+    const session = await requireActiveSession();
+    const profile = session.accessProfile;
     const columnAccess = buildManagementColumnAccess(profile);
 
     if (parsedInput.department && !columnAccess.department) {
@@ -641,17 +615,8 @@ export const bulkUpdateCampaignsAction = actionClient
 export const deleteCampaignsAction = actionClient
   .schema(deleteCampaignSchema)
   .action(async ({ parsedInput }) => {
-    const session = await getServerAuthSession();
-
-    if (!session) {
-      throw new Error("로그인이 필요합니다.");
-    }
-
-    if (session.user.status !== "active") {
-      throw new Error("승인된 사용자만 데이터를 삭제할 수 있습니다.");
-    }
-
-    const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+    const session = await requireActiveSession();
+    const profile = session.accessProfile;
 
     const campaigns = await prisma.campaign.findMany({ where: { id: { in: parsedInput.ids } } });
 
@@ -921,17 +886,8 @@ async function processCampaignRow(
 export const bulkUploadCampaignsAction = actionClient
   .schema(bulkUploadSchema)
   .action(async ({ parsedInput }) => {
-    const session = await getServerAuthSession();
-
-    if (!session) {
-      throw new Error("로그인이 필요합니다.");
-    }
-
-    if (session.user.status !== "active") {
-      throw new Error("승인된 사용자만 데이터를 업로드할 수 있습니다.");
-    }
-
-    const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+    const session = await requireActiveSession();
+    const profile = session.accessProfile;
     const columnAccess = buildManagementColumnAccess(profile);
 
     // CSV 파싱
@@ -1034,6 +990,7 @@ export const bulkUploadCampaignsAction = actionClient
     // 마스터 데이터가 자동 생성된 경우 관련 경로도 재검증
     if (allAutoCreated.size > 0) {
       revalidatePath("/masterdata");
+      revalidateTag(MASTER_DATA_CACHE_TAG);
     }
 
     // 엑셀 업로드 로그 기록

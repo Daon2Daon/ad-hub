@@ -1,9 +1,5 @@
-import { redirect } from "next/navigation";
-
 import { SchedulePageClient } from "@/components/schedule/SchedulePageClient";
-import { filterRowsByScope } from "@/lib/auth/permissions";
-import { createDefaultAccessProfile } from "@/lib/auth/profile";
-import { getServerAuthSession } from "@/lib/auth/session";
+import { requireActiveSession } from "@/lib/auth/session";
 import { fetchCampaignRecords } from "@/lib/dashboard/repository";
 import {
   buildManagementColumnAccess,
@@ -19,22 +15,12 @@ import type { ScheduleRecord } from "@/types/schedule";
 import type { ManagementColumnAccess, ManagementOptions } from "@/types/management";
 
 const Page = async () => {
-  const session = await getServerAuthSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (session.user.status !== "active") {
-    redirect("/login?status=pending");
-  }
-
-  const profile = session.accessProfile ?? createDefaultAccessProfile(session.user.role);
+  const session = await requireActiveSession();
+  const profile = session.accessProfile;
   const [campaigns, masterData] = await Promise.all([
-    fetchCampaignRecords(),
+    fetchCampaignRecords(profile),
     fetchMasterDataItems(),
   ]);
-  const scopedCampaigns = filterRowsByScope(campaigns, profile);
 
   const columnAccess = buildScheduleColumnAccess(profile);
   const options = buildScheduleOptionsFromMasterData(masterData, columnAccess);
@@ -44,7 +30,7 @@ const Page = async () => {
     formColumnAccess,
   );
 
-  const scheduleRecords: ScheduleRecord[] = scopedCampaigns.map((campaign) =>
+  const scheduleRecords: ScheduleRecord[] = campaigns.map((campaign) =>
     toScheduleRecord(campaign, columnAccess),
   );
 
